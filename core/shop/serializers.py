@@ -3,7 +3,7 @@ from .models import MaterialForm
 
 
 class MaterialFormSerializer(serializers.ModelSerializer):
-    simulasi_pengiriman = serializers.SerializerMethodField()
+    # simulasi_pengiriman = serializers.SerializerMethodField()
     user = serializers.ReadOnlyField(source='user.username')
 
     class Meta:
@@ -11,6 +11,8 @@ class MaterialFormSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'user',
+            'nama_pemilik',
+            'no_hp',
             'nama_material',
             'kategori',
             'deskripsi',
@@ -20,5 +22,6 @@ class MaterialFormSerializer(serializers.ModelSerializer):
             'lat',
             'longitude',
             'catatan',
+            # 'simulasi_pengiriman'
         ]
         read_only_fields = ['id', 'user']

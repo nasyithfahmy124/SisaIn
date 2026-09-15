@@ -7,7 +7,7 @@ User = get_user_model()
 class MaterialForm(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
     nama_pemilik = models.CharField(max_length=100)
-    no_hp = models.IntegerField()
+    no_hp = models.CharField(max_length=50)
     nama_material = models.CharField(max_length=100)
     kategori = models.CharField(max_length=100,
                                 choices=[
@@ -25,7 +25,7 @@ class MaterialForm(models.Model):
                                     ],
                                     default='layak')
     image = models.ImageField(upload_to='donations/', blank=True, null=True)
-    
+    tersedia = models.BooleanField(default=True)
     alamat = models.TextField()
     lat = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
@@ -34,6 +34,26 @@ class MaterialForm(models.Model):
     
     def __str__(self):
         return self.nama_material
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     # def hitung_jarak(self,lat_penerima,lng_penerima):
     #     radius_bumi = 6371

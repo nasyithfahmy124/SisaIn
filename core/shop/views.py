@@ -3,9 +3,6 @@ from .models import MaterialForm
 from .serializers import MaterialFormSerializer
 
 class MaterialPemilikViewSet(viewsets.ModelViewSet):
-    """
-    FORM PEMILIK BARANG
-    """
     serializer_class = MaterialFormSerializer
     permission_classes = [permissions.IsAuthenticated]
 
