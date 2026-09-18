@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Camera, BrainCircuit, Truck, HeartHandshake } from 'lucide-react';
 import HeroSection from '../components/Hero/HeroSection';
-import ValuePillars from '../components/ValuePillars';
+import ValuePillars from '../components/ValuePillars/ValuePillars';
 import TrustedPartners from '../components/TrustedPartners';
 import HowItWorks from '../components/HowItWorks';
 
