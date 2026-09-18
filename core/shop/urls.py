@@ -6,5 +6,5 @@ router = DefaultRouter()
 router.register(r'barang-saya', MaterialPemilikViewSet, basename='barang-saya')
 
 urlpatterns = [
-    path('api/', include(router.urls)),
+    path('', include(router.urls)),
 ]
