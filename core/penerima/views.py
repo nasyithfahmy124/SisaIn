@@ -7,6 +7,8 @@ from .models import Klaim_Barang
 from shop.models import MaterialForm
 from .serializers import KlaimDonasiSerializer, MaterialListSerializer
 from django.shortcuts  import get_object_or_404
+from shop.serializers import MaterialFormSerializer
+from django.db.models import Q
 
 
 class DaftarBarangTersediaAPIView(APIView):
@@ -98,3 +100,31 @@ class KlaimBarangAPIView(generics.CreateAPIView):
             status=status.HTTP_201_CREATED,
             headers=headers,
         )
+
+class SearchView(APIView):
+    def get(self, request):
+        query = request.GET.get('q', None)       
+        kategori = request.GET.get('kategori', None)  
+        alamat = request.GET.get('alamat', None)   
+        material = MaterialForm.objects.all()
+    
+        if query:
+            material = material.filter(
+                Q(nama_material__icontains=query) | Q(deskripsi__icontains=query)
+            )
+        if kategori:
+            material = material.filter(kategori__iexact=kategori)
+        if alamat:
+            material = material.filter(alamat__icontains=alamat)
+        serializer = MaterialFormSerializer(material, many=True)
+        
+        return Response({
+            "status": "sukses",
+            "filters": {
+                "q": query,
+                "kategori": kategori,
+                "alamat": alamat
+            },
+            "total_hasil": material.count(),
+            "result": serializer.data
+        }, status=status.HTTP_200_OK)
