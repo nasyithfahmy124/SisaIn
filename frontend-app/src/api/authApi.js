@@ -47,5 +47,22 @@ export const authApi = {
       throw new Error("Sesi telah habis, silakan login kembali.");
     }
     return data;
+  },
+
+  // Tambahan untuk Google Login
+  loginWithGoogle: async (googleToken) => {
+    const response = await fetch(`${BASE_URL}/log/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token: googleToken }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Gagal masuk dengan akun Google.");
+    }
+    return data;
   }
 };

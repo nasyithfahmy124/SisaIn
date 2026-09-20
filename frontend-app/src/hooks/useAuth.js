@@ -37,6 +37,24 @@ export const useAuth = () => {
     }
   };
 
+  // Tambahan untuk Google Login
+  const loginWithGoogle = async (googleToken) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await authApi.loginWithGoogle(googleToken);
+      localStorage.setItem('access_token', data.access);
+      localStorage.setItem('refresh_token', data.refresh);
+      setUser({ isAuthenticated: true, token: data.access });
+      navigate('/beranda');
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const register = async (userData) => {
     setIsLoading(true);
     setError(null);
@@ -59,5 +77,6 @@ export const useAuth = () => {
     navigate('/login');
   };
 
-  return { user, isLoading, error, login, register, logout };
+  // Pastikan loginWithGoogle ikut di-export
+  return { user, isLoading, error, login, loginWithGoogle, register, logout };
 };
