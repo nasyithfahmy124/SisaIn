@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import DaftarBarangTersediaAPIView, KlaimBarangAPIView,BarangDetailRekomendasi
+from .views import DaftarBarangTersediaAPIView, KlaimBarangAPIView,BarangDetailRekomendasi,SearchView
 
 urlpatterns = [
     path(
@@ -14,5 +14,8 @@ urlpatterns = [
         'barang-tersedia/klaim/<int:material_id>/',
         KlaimBarangAPIView.as_view(),
         name='klaim_barang',
+    ),
+    path(
+        'search/',SearchView.as_view(),name='search-produk'
     ),
 ]
