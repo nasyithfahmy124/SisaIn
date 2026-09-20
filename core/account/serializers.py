@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from .models import AkunProfile
 
 class RegisterSeri(serializers.ModelSerializer):
     password = serializers.CharField(write_only = True)
@@ -15,3 +16,37 @@ class RegisterSeri(serializers.ModelSerializer):
             
         )
         return user
+    
+class ProfileSeri(serializers.ModelSerializer):
+    class Meta:
+        model = AkunProfile
+        fields = [
+            'image',
+            'first_name',
+            'last_name',
+            'email',
+            'no_tlp',
+            'gender',
+            'alamat'
+        ]
+        read_only_fields = [
+            'user',
+            'email',
+        ]
+        
+class UpdateProfileSeri(serializers.ModelSerializer):
+    class Meta:
+        model = AkunProfile
+        fields =  [
+            'image',
+            'first_name',
+            'last_name',
+            'email',
+            'no_tlp',
+            'gender',
+            'alamat'
+        ]
+        read_only_fields = [
+            'user',
+            'email',
+        ]
