@@ -41,7 +41,7 @@ export default function ValuePillars() {
                 >
                     <ValuePillarsHeader />
 
-                    <div className="mt-12 lg:mt-20">
+                    <div className="mt-10 lg:mt-2">
                         <div className="hidden lg:block">
                             <ValuePillarsDesktop
                                 pillars={PILLARS}

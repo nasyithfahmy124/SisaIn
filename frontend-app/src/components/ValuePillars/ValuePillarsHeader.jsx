@@ -23,9 +23,7 @@ export default function ValuePillarsHeader() {
             className="max-w-2xl"
         >
             <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
-
-                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-yellow-500 sm:text-xs">
+                <span className="text-[20px] font-black uppercase tracking-[0.22em] text-yellow-500 sm:text-xs">
                     Mengapa SISAIN
                 </span>
             </div>

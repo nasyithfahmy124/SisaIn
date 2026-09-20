@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { User, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useAuth } from "../hooks/useAuth"; // <-- Impor custom hook
+import { useAuth } from "../hooks/useAuth"; 
+import { GoogleLogin } from '@react-oauth/google'; // <-- Impor Google Login
 
 const ease = [0.22, 1, 0.36, 1];
 
@@ -25,9 +26,9 @@ const image = {
 };
 
 export default function Login() {
-  const { login, isLoading } = useAuth(); // <-- Gunakan fungsi login dari hook
+  // <-- Ekstrak loginWithGoogle dari custom hook
+  const { login, loginWithGoogle, isLoading } = useAuth(); 
 
-  // Ubah state email menjadi username
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -35,17 +36,25 @@ export default function Login() {
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  // Handler Login Manual (Username & Password)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
 
     try {
-      // Panggil API Login
       await login(formData);
-      // Jika berhasil, useAuth akan otomatis melakukan navigate('/beranda')
     } catch (err) {
-      // Tangkap pesan error (misal: "No active account found with the given credentials")
       setErrorMsg(err.message || "Gagal masuk. Periksa kembali username dan kata sandi Anda.");
+    }
+  };
+
+  // Handler Login via Google
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setErrorMsg("");
+    try {
+      await loginWithGoogle(credentialResponse.credential);
+    } catch (err) {
+      setErrorMsg(err.message || "Gagal memverifikasi akun Google.");
     }
   };
 
@@ -88,7 +97,7 @@ export default function Login() {
             </motion.p>
           )}
 
-          {/* Username (sebelumnya Email) */}
+          {/* Username */}
           <motion.div variants={item} className="flex items-center border-b border-gray-300 py-2 mb-6 transition-colors duration-300 focus-within:border-yellow-500">
             <User className="text-gray-400 w-5 h-5 mr-3" strokeWidth={1.5} />
             <input 
@@ -120,7 +129,7 @@ export default function Login() {
           </motion.div>
 
           {/* Options */}
-          <motion.div variants={item} className="flex items-center justify-between mb-10 text-xs md:text-sm">
+          <motion.div variants={item} className="flex items-center justify-between mb-8 text-xs md:text-sm">
             <label className="flex items-center text-gray-500 cursor-pointer hover:text-gray-700 transition-colors">
               <input 
                 type="checkbox" 
@@ -136,14 +145,13 @@ export default function Login() {
             </a>
           </motion.div>
 
-          {/* Button */}
           <motion.button
             variants={item}
             type="submit"
             disabled={isLoading}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className={`w-full max-w-[280px] text-white rounded-full py-2 px-2 flex items-center shadow-lg transition-colors duration-300 ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-yellow-500 hover:bg-yellow-600 shadow-yellow-500/20'}`}
+            className={`w-full max-w-[280px] mx-auto md:mx-0 text-white rounded-full py-2 px-2 flex items-center shadow-lg transition-colors duration-300 ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-yellow-500 hover:bg-yellow-600 shadow-yellow-500/20'}`}
           >
             <div className={`${isLoading ? 'bg-gray-300' : 'bg-yellow-400/50'} rounded-full p-2 flex items-center justify-center`}>
               <ArrowRight className="w-5 h-5" />
@@ -154,8 +162,28 @@ export default function Login() {
             </span>
           </motion.button>
 
+          {/* Pembatas Atau */}
+          <motion.div variants={item} className="mt-8 flex items-center justify-center max-w-[280px] mx-auto md:mx-0">
+            <span className="h-px w-full bg-gray-200"></span>
+            <span className="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Atau</span>
+            <span className="h-px w-full bg-gray-200"></span>
+          </motion.div>
+
+          {/* Tombol Google Login */}
+          <motion.div variants={item} className="mt-6 flex justify-center md:justify-start">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setErrorMsg('Popup Google ditutup atau gagal dimuat.')}
+              useOneTap
+              shape="pill"
+              theme="outline"
+              size="large"
+              text="continue_with"
+            />
+          </motion.div>
+
           {/* Register Link */}
-          <motion.div variants={item} className="mt-4 text-center md:text-left text-xs text-gray-400">
+          <motion.div variants={item} className="mt-8 text-center md:text-left text-xs text-gray-400">
             Belum punya akun?{" "}
             <Link to="/register" className="text-yellow-500 hover:text-yellow-600 font-medium transition-colors">
               Buat akun baru

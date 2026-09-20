@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { GoogleOAuthProvider } from "@react-oauth/google"; // <-- Import ditambahkan di sini
 
 import MainLayout from "../layout/MainLayout";
 import Login from "../pages/Login";
@@ -53,8 +54,11 @@ function NotFound() {
 
 export default function AnimatedRoutes() {
   return (
-    <Router>
-      <RouteTransitions />
-    </Router>
+    // Membungkus seluruh routing dengan GoogleOAuthProvider
+    <GoogleOAuthProvider clientId="497788560869-tr6847ke129tnbh6ao5s59r61sflhir2.apps.googleusercontent.com">
+      <Router>
+        <RouteTransitions />
+      </Router>
+    </GoogleOAuthProvider>
   );
 }
