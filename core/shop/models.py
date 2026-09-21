@@ -16,6 +16,7 @@ class MaterialForm(models.Model):
                                     ('dll','dan lain lain')
                                 ])
     deskripsi = models.TextField()
+    bobot = models.DecimalField(max_digits=5, decimal_places=1,default=0.0)
     kondisi_barang = models.CharField(max_length=50,
                                     choices=[
                                         ('baru','baru'),
@@ -29,9 +30,8 @@ class MaterialForm(models.Model):
     alamat = models.TextField()
     lat = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
-    
     catatan = models.TextField(default='Silahkan Ambill di Lokasi')
-    
+    created = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     def __str__(self):
         return self.nama_material
     
