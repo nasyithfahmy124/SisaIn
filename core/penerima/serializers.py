@@ -20,6 +20,8 @@ class MaterialListSerializer(serializers.ModelSerializer):
             'deskripsi',
             'kondisi_barang',
             'image',
+            'bobot',
+            'created',
             'alamat',
             'lat',
             'longitude',
@@ -27,6 +29,8 @@ class MaterialListSerializer(serializers.ModelSerializer):
             'tersedia',
             'simulasi_pengiriman',
         ]
+        
+        read_only_fields = ['id','created']
 
     def hitung_jarak(self, lat1, lon1, lat2, lon2):
         radius_bumi = 6371.0

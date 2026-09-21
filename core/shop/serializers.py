@@ -16,6 +16,7 @@ class MaterialFormSerializer(serializers.ModelSerializer):
             'nama_material',
             'kategori',
             'deskripsi',
+            'bobot',
             'kondisi_barang',
             'image',
             'alamat',
@@ -24,4 +25,4 @@ class MaterialFormSerializer(serializers.ModelSerializer):
             'catatan',
             # 'simulasi_pengiriman'
         ]
-        read_only_fields = ['id', 'user']
+        read_only_fields = ['id', 'user','created']

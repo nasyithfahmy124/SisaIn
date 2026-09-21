@@ -16,7 +16,7 @@ class Klaim_Barang(models.Model):
     
     jarak_km = models.FloatField(default=0.0)
     biaya_ongkir = models.IntegerField(default=0)
-
+    
     tanggal_klaim = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
