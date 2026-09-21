@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 
@@ -8,44 +8,48 @@ export const useAuth = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Cek apakah user sudah login saat aplikasi pertama kali dimuat
-  useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        setUser({ isAuthenticated: true, token });
-      }
-      setIsLoading(false);
-    };
-    checkAuth();
-  }, []);
+  const loadProfile = async token => {
+    if (!token) return null;
 
-  const login = async (credentials) => {
-    setIsLoading(true);
-    setError(null);
     try {
-      const data = await authApi.login(credentials);
-      localStorage.setItem('access_token', data.access);
-      localStorage.setItem('refresh_token', data.refresh);
-      setUser({ isAuthenticated: true, token: data.access });
-      navigate('/beranda');
+      const profile = await authApi.getProfile(token);
+      console.log('PROFILE BACKEND:', profile);
+
+      const authenticatedUser = { ...profile, isAuthenticated: true, token };
+      setUser(authenticatedUser);
+
+      return authenticatedUser;
     } catch (err) {
-      setError(err.message);
-      throw err; // Lempar error agar bisa ditangkap oleh UI form
-    } finally {
-      setIsLoading(false);
+      console.error('PROFILE ERROR:', err);
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      setUser(null);
+      return null;
     }
   };
 
-  // Tambahan untuk Google Login
-  const loginWithGoogle = async (googleToken) => {
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    loadProfile(token).finally(() => setIsLoading(false));
+  }, []);
+
+  const login = async credentials => {
     setIsLoading(true);
     setError(null);
+
     try {
-      const data = await authApi.loginWithGoogle(googleToken);
+      const data = await authApi.login(credentials);
+
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
-      setUser({ isAuthenticated: true, token: data.access });
+
+      await loadProfile(data.access);
       navigate('/beranda');
     } catch (err) {
       setError(err.message);
@@ -55,15 +59,39 @@ export const useAuth = () => {
     }
   };
 
-  const register = async (userData) => {
+  const loginWithGoogle = async googleToken => {
     setIsLoading(true);
     setError(null);
+
+    try {
+      const data = await authApi.loginWithGoogle(googleToken);
+
+      localStorage.setItem('access_token', data.access);
+      localStorage.setItem('refresh_token', data.refresh);
+
+      await loadProfile(data.access);
+      navigate('/beranda');
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async userData => {
+    setIsLoading(true);
+    setError(null);
+
     try {
       await authApi.register(userData);
       navigate('/login');
     } catch (err) {
-      const errorText = typeof err === 'object' ? Object.values(err).flat().join(", ") : "Terjadi kesalahan server.";
-      setError(errorText);
+      const message = typeof err === 'object'
+        ? Object.values(err).flat().join(', ')
+        : 'Terjadi kesalahan server.';
+
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -77,6 +105,19 @@ export const useAuth = () => {
     navigate('/login');
   };
 
-  // Pastikan loginWithGoogle ikut di-export
-  return { user, isLoading, error, login, loginWithGoogle, register, logout };
+  const refreshProfile = () => {
+    const token = localStorage.getItem('access_token');
+    return loadProfile(token);
+  };
+
+  return {
+    user,
+    isLoading,
+    error,
+    login,
+    loginWithGoogle,
+    register,
+    logout,
+    refreshProfile
+  };
 };

@@ -1,68 +1,51 @@
 const BASE_URL = "http://127.0.0.1:8000";
 
+const request = async (endpoint, options = {}) => {
+  const response = await fetch(`${BASE_URL}${endpoint}`, options);
+  const data = await response.json();
+
+  if (!response.ok) throw data;
+
+  return data;
+};
+
+const authHeaders = token => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${token}`
+});
+
 export const authApi = {
-  register: async (userData) => {
-    const response = await fetch(`${BASE_URL}/register/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(userData),
-    });
-    
-    const data = await response.json();
-    if (!response.ok) {
-      throw data; 
-    }
-    return data;
-  },
+  register: userData => request("/register/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData)
+  }),
 
-  login: async (credentials) => {
-    const response = await fetch(`${BASE_URL}/login/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(credentials),
-    });
+  login: credentials => request("/login/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(credentials)
+  }),
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.detail || "Username atau password tidak valid.");
-    }
-    return data;
-  },
+  refreshToken: refresh_token => request("/token/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh: refresh_token })
+  }),
 
-  refreshToken: async (refresh_token) => {
-    const response = await fetch(`${BASE_URL}/token/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refresh: refresh_token }),
-    });
+  loginWithGoogle: googleToken => request("/log/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: googleToken })
+  }),
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error("Sesi telah habis, silakan login kembali.");
-    }
-    return data;
-  },
+  getProfile: token => request("/profil/", {
+    headers: authHeaders(token)
+  }),
 
-  // Tambahan untuk Google Login
-  loginWithGoogle: async (googleToken) => {
-    const response = await fetch(`${BASE_URL}/log/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ token: googleToken }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || "Gagal masuk dengan akun Google.");
-    }
-    return data;
-  }
+  updateProfile: (token, profileData) => request("/profil-update/", {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(profileData)
+  })
 };
