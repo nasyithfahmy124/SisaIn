@@ -3,121 +3,103 @@ import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 
 export const useAuth = () => {
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
+    const [user, setUser] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
-  const loadProfile = async token => {
-    if (!token) return null;
+    const loadProfile = async token => {
+        try {
+            const profile = await authApi.getProfile(token);
+            setUser({ ...profile, isAuthenticated: true, token });
+            return profile;
+        } catch {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            setUser(null);
+            return null;
+        }
+    };
 
-    try {
-      const profile = await authApi.getProfile(token);
-      console.log('PROFILE BACKEND:', profile);
+    useEffect(() => {
+        const token = localStorage.getItem('access_token');
 
-      const authenticatedUser = { ...profile, isAuthenticated: true, token };
-      setUser(authenticatedUser);
+        if (!token) {
+            setIsLoading(false);
+            return;
+        }
 
-      return authenticatedUser;
-    } catch (err) {
-      console.error('PROFILE ERROR:', err);
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      setUser(null);
-      return null;
-    }
-  };
+        loadProfile(token).finally(() => setIsLoading(false));
+    }, []);
 
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const login = async credentials => {
+        setIsLoading(true);
+        setError(null);
 
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
+        try {
+            const data = await authApi.login(credentials);
 
-    loadProfile(token).finally(() => setIsLoading(false));
-  }, []);
+            localStorage.setItem('access_token', data.access);
+            localStorage.setItem('refresh_token', data.refresh);
 
-  const login = async credentials => {
-    setIsLoading(true);
-    setError(null);
+            await loadProfile(data.access);
+            navigate('/beranda');
+        } catch (err) {
+            setError(err.detail || 'Username atau password tidak valid.');
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-    try {
-      const data = await authApi.login(credentials);
+    const loginWithGoogle = async googleToken => {
+        setIsLoading(true);
+        setError(null);
 
-      localStorage.setItem('access_token', data.access);
-      localStorage.setItem('refresh_token', data.refresh);
+        try {
+            const data = await authApi.loginWithGoogle(googleToken);
 
-      await loadProfile(data.access);
-      navigate('/beranda');
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+            localStorage.setItem('access_token', data.access);
+            localStorage.setItem('refresh_token', data.refresh);
 
-  const loginWithGoogle = async googleToken => {
-    setIsLoading(true);
-    setError(null);
+            await loadProfile(data.access);
+            navigate('/beranda');
+        } catch (err) {
+            setError(err.error || 'Gagal masuk dengan akun Google.');
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-    try {
-      const data = await authApi.loginWithGoogle(googleToken);
+    const register = async userData => {
+        setIsLoading(true);
+        setError(null);
 
-      localStorage.setItem('access_token', data.access);
-      localStorage.setItem('refresh_token', data.refresh);
+        try {
+            await authApi.register(userData);
+            navigate('/login');
+        } catch (err) {
+            const message = typeof err === 'object' ? Object.values(err).flat().join(', ') : 'Terjadi kesalahan server.';
+            setError(message);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-      await loadProfile(data.access);
-      navigate('/beranda');
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const logout = () => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        setUser(null);
+        navigate('/login');
+    };
 
-  const register = async userData => {
-    setIsLoading(true);
-    setError(null);
+    const refreshProfile = async () => {
+        const token = localStorage.getItem('access_token');
 
-    try {
-      await authApi.register(userData);
-      navigate('/login');
-    } catch (err) {
-      const message = typeof err === 'object'
-        ? Object.values(err).flat().join(', ')
-        : 'Terjadi kesalahan server.';
+        if (token) await loadProfile(token);
+    };
 
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    setUser(null);
-    navigate('/login');
-  };
-
-  const refreshProfile = () => {
-    const token = localStorage.getItem('access_token');
-    return loadProfile(token);
-  };
-
-  return {
-    user,
-    isLoading,
-    error,
-    login,
-    loginWithGoogle,
-    register,
-    logout,
-    refreshProfile
-  };
+    return { user, isLoading, error, login, loginWithGoogle, register, logout, refreshProfile };
 };
