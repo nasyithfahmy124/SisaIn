@@ -5,7 +5,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.urls import reverse
 import google.generativeai as genai
-from .serializers import ChatRekomendasiSerializer
+from .serializers import ChatRekomendasiSerializer,AIAnalisisSeri
+from .models import AIAnalisis
+from .servis import analyze_material_image
+from rest_framework.permissions import AllowAny
 load_dotenv()
 
 try:
@@ -95,3 +98,29 @@ class RekomendasiMaterialAIView(APIView):
             "rekomendasi_ai": rekomendasi_teks,
             "daftar_rekomendasi_mentah": daftar_barang 
         }, status=status.HTTP_200_OK)
+        
+
+class ProsesAnalisisAIView(APIView):
+
+  def post(self, request):
+    serializer = AIAnalisisSeri(data=request.data)
+
+    if serializer.is_valid():
+      instance = serializer.save()
+
+      try:
+        image_path = instance.image.path
+        ai_json_result = analyze_material_image(image_path)
+        instance.result_data = ai_json_result
+        instance.save()
+        output_serializer = AIAnalisisSeri(instance)
+        return Response(
+            output_serializer.data, status=status.HTTP_201_CREATED
+        )
+
+      except Exception as e:
+        return Response(
+            {"error": f"Gagal memproses AI: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
