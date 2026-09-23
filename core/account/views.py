@@ -18,7 +18,7 @@ User = get_user_model()
 
 
 class RegistView(APIView):
-    permission_classes = [AllowAny]     # <-- Izinkan siapa saja mengakses tanpa auth/sesi
+    permission_classes = [AllowAny]
     authentication_classes = []
     serializer_class = RegisterSeri
     def get(self, request):
