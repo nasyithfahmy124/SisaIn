@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-)d!1=ok$_0pnim%+s91g5h%xis0!8*&&x$bwu=jjb9+tbk2_6#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['.vercel.app','localhost', '127.0.0.1']
 BASE_DIR = Path(__file__).resolve().parent.parent
 dotenv.load_dotenv(os.path.join(BASE_DIR, '.env'))
 CORS_ALLOW_ALL_ORIGINS = True
