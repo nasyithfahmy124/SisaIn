@@ -1,206 +1,198 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-// Import UploadCloud dan Activity sudah ditambahkan di sini:
-import { ArrowLeft, ArrowRight, User, MapPin, CheckCircle2, ChevronRight, FileText, Leaf, Box, UploadCloud, Activity } from 'lucide-react';
-export default function MobileRedistribusi() {
-  const [activeTab, setActiveTab] = useState('upload');
-  const [distribusiType, setDistribusiType] = useState('fasos');
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { 
+    Plus, Activity, ShieldCheck, Building2, Coins, 
+    ArrowRight, MapPin, CheckCircle2, Box, ArrowUpRight
+} from 'lucide-react';
+import { redistribusiData } from '../../data/redistribusiData';
 
-  return (
-    <div className="bg-gray-50 min-h-screen pb-28 relative">
-      
-      {/* Top App Bar */}
-      <div className="bg-white px-4 py-4 flex items-center justify-between sticky top-0 z-50 shadow-sm">
-        <div className="flex items-center">
-          <ArrowLeft className="w-6 h-6 text-gray-700 mr-3" />
-          <h1 className="text-lg font-bold text-gray-900">Tambah Surplus</h1>
-        </div>
-        <div className="w-8 h-8 bg-yellow-700 rounded-full flex items-center justify-center text-white">
-          <User className="w-5 h-5" />
-        </div>
-      </div>
+export default function RedistribusiMobile() {
+    const { impact, materials, projects } = redistribusiData;
 
-      {/* Segmented Control */}
-      <div className="px-4 py-4 bg-white">
-        <div className="bg-gray-100 rounded-full p-1 flex relative">
-          <motion.div 
-            layout 
-            className={`absolute top-1 bottom-1 w-[49%] bg-yellow-400 rounded-full shadow-sm`}
-            animate={{ left: activeTab === 'upload' ? '4px' : '50%' }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          />
-          <button 
-            onClick={() => setActiveTab('upload')}
-            className={`flex-1 py-2 text-sm font-bold z-10 flex items-center justify-center transition-colors ${activeTab === 'upload' ? 'text-gray-900' : 'text-gray-500'}`}
-          >
-            <UploadCloud className="w-4 h-4 mr-2" /> Upload Material
-          </button>
-          <button 
-            onClick={() => setActiveTab('kebutuhan')}
-            className={`flex-1 py-2 text-sm font-bold z-10 flex items-center justify-center transition-colors ${activeTab === 'kebutuhan' ? 'text-gray-900' : 'text-gray-500'}`}
-          >
-            <Activity className="w-4 h-4 mr-2" /> Kebutuhan Fasum
-          </button>
-        </div>
-      </div>
-
-      <div className="px-4 py-6 space-y-6">
-        
-        {/* AI Result Image */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-          className="relative rounded-3xl overflow-hidden h-56 shadow-sm"
-        >
-          <img src="/src/assets/img/semen-placeholder.jpg" alt="Semen" className="w-full h-full object-cover" />
-          <div className="absolute bottom-3 left-3 right-3 bg-gray-900/85 backdrop-blur-md rounded-2xl p-3 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] text-gray-300 font-bold uppercase tracking-wider mb-0.5">Hasil AI Sisain</p>
-              <p className="text-white text-sm font-bold flex items-center">
-                <span className="text-yellow-400 mr-2">✨</span> 4 Sak Semen (Kering & Utuh)
-              </p>
+    return (
+        <div className="bg-[#FAF9F7] min-h-screen pb-28 font-sans">
+            
+            {/* HERO SECTION */}
+            <div className="px-4 pt-4">
+                <div className="bg-[#FFCC00] rounded-[32px] p-6 relative overflow-hidden shadow-sm">
+                    {/* Background Element (Optional Pattern) */}
+                    <div className="absolute -right-6 -top-6 w-32 h-32 border-[20px] border-yellow-400/30 rounded-full"></div>
+                    
+                    <div className="relative z-10">
+                        <div className="inline-flex items-center gap-1.5 bg-white rounded-full px-3 py-1.5 mb-4 shadow-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                            <span className="text-[9px] font-bold text-gray-800 tracking-wide">Sirkulasi Material Surplus</span>
+                        </div>
+                        
+                        <h1 className="text-[22px] font-black text-gray-900 leading-tight mb-3">
+                            Material sisa proyekmu bisa berguna kembali.
+                        </h1>
+                        <p className="text-[11px] font-medium text-gray-800/80 leading-relaxed mb-6 max-w-[90%]">
+                            Sisain menganalisis surplus konstruksi dan menghubungkannya langsung ke kebutuhan fasum warga sekitar.
+                        </p>
+                        
+                        <div className="flex items-center gap-3">
+                            <Link to="/redistribusi/material/new" className="flex-1 bg-gray-900 text-white text-xs font-bold py-3 px-4 rounded-full flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md">
+                                <Plus className="w-4 h-4 text-yellow-400" /> Tambah Material
+                            </Link>
+                            <button className="bg-white text-gray-900 text-xs font-bold py-3 px-5 rounded-full flex items-center justify-center active:scale-95 transition-transform shadow-sm">
+                                Aktivitas
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div className="bg-green-500 p-1.5 rounded-full">
-              <CheckCircle2 className="w-4 h-4 text-white" />
-            </div>
-          </div>
-        </motion.div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center">
-            <Leaf className="w-6 h-6 text-green-500 mr-3" />
-            <div>
-              <p className="text-[10px] text-gray-500 font-bold">Potensi Reduksi</p>
-              <p className="text-lg font-black text-gray-900">160 Kg</p>
+            {/* STATS PILLS */}
+            <div className="px-4 mt-4 flex gap-2 overflow-x-auto hide-scrollbar">
+                <div className="flex-1 min-w-[100px] bg-white rounded-2xl py-3 px-2 flex flex-col items-center justify-center border border-gray-100 shadow-sm">
+                    <h4 className="text-lg font-black text-gray-900 flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> 185 <span className="text-[10px] text-gray-500">Kg</span>
+                    </h4>
+                    <p className="text-[9px] font-bold text-gray-500 mt-0.5">Material Bebas</p>
+                </div>
+                <div className="flex-1 min-w-[100px] bg-white rounded-2xl py-3 px-2 flex flex-col items-center justify-center border border-gray-100 shadow-sm">
+                    <h4 className="text-lg font-black text-gray-900 flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5 text-yellow-600" /> 3
+                    </h4>
+                    <p className="text-[9px] font-bold text-gray-500 mt-0.5">Proyek Fasum</p>
+                </div>
+                <div className="flex-1 min-w-[100px] bg-white rounded-2xl py-3 px-2 flex flex-col items-center justify-center border border-gray-100 shadow-sm">
+                    <h4 className="text-lg font-black text-gray-900 flex items-center gap-1">
+                        <Coins className="w-3.5 h-3.5 text-yellow-600" /> 320
+                    </h4>
+                    <p className="text-[9px] font-bold text-gray-500 mt-0.5">Koin Sisain</p>
+                </div>
             </div>
-          </div>
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center">
-            <Box className="w-6 h-6 text-yellow-600 mr-3" />
-            <div>
-              <p className="text-[10px] text-gray-500 font-bold">Kondisi Material</p>
-              <p className="text-lg font-black text-gray-900">Grade A</p>
+
+            {/* MATERIAL SAYA (HORIZONTAL SCROLL) */}
+            <div className="mt-8">
+                <div className="px-4 flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-base font-black text-gray-900">Material Saya</h2>
+                        <span className="bg-yellow-100 text-yellow-800 text-[9px] font-black px-2 py-0.5 rounded-full">3 Unit</span>
+                    </div>
+                    <Link to="/redistribusi/material" className="text-[11px] font-bold text-gray-600 flex items-center gap-0.5 hover:text-gray-900">
+                        Lihat Semua <ArrowRight className="w-3 h-3" />
+                    </Link>
+                </div>
+
+                <div className="flex overflow-x-auto gap-4 px-4 pb-4 snap-x snap-mandatory hide-scrollbar">
+                    {/* Item 1 */}
+                    <div className="min-w-[240px] w-[240px] snap-start bg-white rounded-3xl p-3 shadow-sm border border-gray-100">
+                        <div className="relative h-28 rounded-2xl overflow-hidden mb-3">
+                            <img src="/src/assets/img/semen-placeholder.jpg" alt="Semen" className="w-full h-full object-cover" />
+                            <div className="absolute top-2 left-2 bg-white/90 backdrop-blur text-gray-900 text-[9px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                                <ShieldCheck className="w-3 h-3 text-emerald-600" /> Tercocokkan
+                            </div>
+                        </div>
+                        <h3 className="text-[13px] font-black text-gray-900 mb-0.5 truncate">Semen Portland PCC</h3>
+                        <p className="text-[10px] text-gray-500 mb-4 truncate">4 Sak (160 Kg)</p>
+                        
+                        <div className="flex justify-between items-end mb-1.5">
+                            <span className="text-[9px] font-bold text-gray-600 truncate">Musala Al-Ikhlas</span>
+                            <span className="text-[9px] font-black text-gray-900">80%</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-1.5">
+                            <div className="bg-[#FFCC00] h-1.5 rounded-full" style={{ width: '80%' }}></div>
+                        </div>
+                    </div>
+
+                    {/* Item 2 */}
+                    <div className="min-w-[240px] w-[240px] snap-start bg-white rounded-3xl p-3 shadow-sm border border-gray-100">
+                        <div className="relative h-28 rounded-2xl overflow-hidden mb-3">
+                            <img src="https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&q=80&w=300" alt="Kayu" className="w-full h-full object-cover" />
+                            <div className="absolute top-2 left-2 bg-white/90 backdrop-blur text-gray-900 text-[9px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                                <Box className="w-3 h-3 text-emerald-600" /> Dijemput
+                            </div>
+                        </div>
+                        <h3 className="text-[13px] font-black text-gray-900 mb-0.5 truncate">Kayu Kaso Bekas</h3>
+                        <p className="text-[10px] text-gray-500 mb-4 truncate">12 Btg (3.8m)</p>
+                        
+                        <div className="flex justify-between items-end mb-1.5">
+                            <span className="text-[9px] font-bold text-gray-600 truncate">Panitia Pos RW 02</span>
+                            <span className="text-[9px] font-black text-gray-900">100%</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-1.5">
+                            <div className="bg-emerald-600 h-1.5 rounded-full" style={{ width: '100%' }}></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
+
+            {/* PROYEK SEDANG DIBANTU */}
+            <div className="px-4 mt-4">
+                <div className="flex items-center gap-2 mb-4">
+                    <h2 className="text-base font-black text-gray-900">Proyek Sedang Dibantu</h2>
+                    <span className="bg-emerald-100 text-emerald-700 text-[9px] font-black px-2 py-0.5 rounded-full">1 Aktif</span>
+                </div>
+
+                <div className="bg-white rounded-[28px] shadow-sm border border-gray-100 overflow-hidden">
+                    {/* Header Image */}
+                    <div className="relative h-44">
+                        <img src={projects[0]?.image || "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=400"} alt="Proyek" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/30 to-transparent"></div>
+                        
+                        <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur-sm text-white text-[9px] font-black px-2.5 py-1.5 rounded-lg flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 border border-white rounded-full bg-transparent flex items-center justify-center">!</span> URGENT FASUM
+                        </div>
+                        
+                        <div className="absolute bottom-3 left-3 right-3 text-white">
+                            <h3 className="text-base font-black leading-tight mb-1">{projects[0]?.title || "Perbaikan Jalan Gang RT 03/RW 05"}</h3>
+                            <p className="text-[10px] font-medium opacity-90 flex items-center gap-1">
+                                <MapPin className="w-3 h-3" /> Candisari, Semarang • 0.7 km dari lokasimu
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Progress Info */}
+                    <div className="p-4">
+                        <div className="flex justify-between text-[10px] font-bold mb-2">
+                            <span className="text-gray-600">Kebutuhan Semen & Pasir</span>
+                            <span className="text-emerald-600">78% Terpenuhi</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
+                            <div className="bg-emerald-600 h-2 rounded-full" style={{ width: '78%' }}></div>
+                        </div>
+
+                        <div className="bg-gray-50 border border-gray-100 rounded-2xl p-3 flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                                    <Box className="w-4 h-4 text-yellow-700" />
+                                </div>
+                                <div>
+                                    <p className="text-[9px] text-gray-500 font-semibold mb-0.5">Kontribusi Material Anda</p>
+                                    <p className="text-[11px] font-black text-gray-900">4 Sak Semen Portland</p>
+                                </div>
+                            </div>
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                        </div>
+
+                        <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-[11px] font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-95">
+                            Pantau Progress Lapangan <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* BOTTOM CTA */}
+            <div className="px-4 mt-6">
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#FFCC00]/20 rounded-full flex items-center justify-center shrink-0">
+                            <Box className="w-5 h-5 text-yellow-700" />
+                        </div>
+                        <div>
+                            <h4 className="text-[11px] font-black text-gray-900 mb-0.5">Ada sisa renovasi di rumah?</h4>
+                            <p className="text-[9px] text-gray-500 font-medium">Foto & kirim ke fasum terdekat.</p>
+                        </div>
+                    </div>
+                    <Link to="/redistribusi/material/new" className="bg-[#FFCC00] text-gray-900 text-[11px] font-bold px-4 py-2.5 rounded-full flex items-center gap-1 active:scale-95 transition-transform shadow-sm">
+                        <Plus className="w-3.5 h-3.5" /> Tambah
+                    </Link>
+                </div>
+            </div>
+
         </div>
-
-        {/* Form Fields */}
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-2">Lokasi Penjemputan</label>
-            <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center shadow-sm">
-              <MapPin className="w-5 h-5 text-red-500 mr-3 flex-shrink-0" />
-              <input type="text" defaultValue="Jl. Pandanaran No. 42, Semarang" className="w-full text-sm font-medium text-gray-800 outline-none" />
-              <Activity className="w-4 h-4 text-gray-400" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-2">Catatan Donatur</label>
-            <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-start shadow-sm">
-              <FileText className="w-5 h-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
-              <textarea rows="2" defaultValue="Semen sisa acian dinding, tersimpan rapi di teras kering." className="w-full text-sm font-medium text-gray-800 outline-none resize-none"></textarea>
-            </div>
-          </div>
-        </div>
-
-        {/* Tujuan Distribusi */}
-        <div>
-          <label className="block text-xs font-bold text-gray-500 mb-3">Tujuan Distribusi</label>
-          <div className="space-y-3">
-            <motion.div 
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setDistribusiType('fasos')}
-              className={`p-4 rounded-2xl border-2 flex items-center transition-colors ${distribusiType === 'fasos' ? 'border-yellow-400 bg-yellow-50' : 'border-gray-100 bg-white'}`}
-            >
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                <Activity className="w-5 h-5 text-green-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-gray-900 text-sm">Donasi Fasilitas Sosial</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Disalurkan untuk fasum, pos ronda, atau jalan warga</p>
-              </div>
-              {distribusiType === 'fasos' && <CheckCircle2 className="w-6 h-6 text-green-600" />}
-            </motion.div>
-
-            <motion.div 
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setDistribusiType('warga')}
-              className={`p-4 rounded-2xl border-2 flex items-center transition-colors ${distribusiType === 'warga' ? 'border-yellow-400 bg-yellow-50' : 'border-gray-100 bg-white'}`}
-            >
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                <User className="w-5 h-5 text-gray-500" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-gray-900 text-sm">Klaim Bebas Warga</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Siapapun tetangga terdekat boleh mengambil langsung</p>
-              </div>
-              {distribusiType === 'warga' && <CheckCircle2 className="w-6 h-6 text-green-600" />}
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Urgent Target Card */}
-        <div className="bg-[#FACC15] rounded-3xl p-5 shadow-sm relative overflow-hidden">
-          <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-yellow-300 rounded-full opacity-50 blur-2xl"></div>
-          
-          <div className="flex justify-between items-center mb-3 relative z-10">
-            <span className="bg-white/80 backdrop-blur-sm text-red-600 text-[10px] font-black px-2 py-1 rounded-md flex items-center uppercase">
-              <Activity className="w-3 h-3 mr-1" /> Urgent Fasum
-            </span>
-            <span className="text-yellow-900 text-xs font-bold flex items-center">
-              ● Cocok 98%
-            </span>
-          </div>
-          
-          <h3 className="text-xl font-black text-gray-900 mb-2 relative z-10">Perbaikan Jalan Gang RT 03</h3>
-          <p className="text-xs text-yellow-900 font-medium mb-4 w-5/6 relative z-10">
-            Butuh semen & pasir untuk tambal lubang jalan (0.7 km dari lokasimu)
-          </p>
-          
-          <div className="flex items-center justify-between relative z-10">
-            <div className="flex space-x-2">
-              <span className="bg-yellow-50 text-yellow-800 text-xs font-bold px-2 py-1 rounded-lg flex items-center">
-                <MapPin className="w-3 h-3 mr-1" /> 0.7 km
-              </span>
-              <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-lg flex items-center">
-                <CheckCircle2 className="w-3 h-3 mr-1" /> Terverifikasi RW
-              </span>
-            </div>
-            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm">
-              <ArrowRight className="w-4 h-4 text-gray-900" />
-            </div>
-          </div>
-        </div>
-        
-        {/* Environmental Impact Banner */}
-        <div className="bg-green-50 rounded-2xl p-4 flex items-center border border-green-100">
-           <div className="bg-green-200 p-2 rounded-full mr-3">
-             <Leaf className="w-5 h-5 text-green-700" />
-           </div>
-           <div>
-             <p className="text-xs font-bold text-gray-900">312 kg material diselamatkan minggu ini</p>
-             <p className="text-[10px] text-gray-500">Kecamatan Semarang Tengah • 14 Donatur Aktif</p>
-           </div>
-        </div>
-
-      </div>
-
-      {/* Sticky Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] md:hidden z-50">
-        <motion.button 
-          whileTap={{ scale: 0.95 }}
-          className="w-full bg-white border-2 border-gray-100 hover:border-yellow-400 text-gray-900 rounded-2xl p-2 flex items-center justify-between transition-colors shadow-sm"
-        >
-          <div className="text-left pl-2">
-            <p className="font-bold text-sm">Lanjutkan Donasi</p>
-            <p className="text-[10px] text-gray-500">Gratis penjemputan oleh relawan</p>
-          </div>
-          <div className="bg-yellow-400 w-12 h-12 rounded-xl flex items-center justify-center shadow-inner">
-            <ArrowRight className="w-6 h-6 text-gray-900" />
-          </div>
-        </motion.button>
-      </div>
-      
-    </div>
-  );
+    );
 }

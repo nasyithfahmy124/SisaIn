@@ -88,64 +88,72 @@ export default function Navbar() {
                         </div>
 
                         <div className="ml-auto hidden items-center gap-3 md:flex">
-                            {isAuthenticated && (
-                                <Link to="/redistribusi" className="flex h-9 items-center gap-1.5 rounded-full bg-[#FFD500] px-4 text-[11px] font-bold text-gray-950 shadow-sm transition hover:bg-[#F4C800]">
-                                    <Plus size={14} strokeWidth={2.5} />
-                                    Tambah Material
-                                </Link>
-                            )}
+                            
+                            {/* Tombol dirender optimistis saat loading atau sudah login agar tidak hilang saat navigasi */}
+                            {(isLoading || isAuthenticated) && (
+                                <>
+                                    <Link to="/redistribusi/material/new" className="flex h-9 items-center gap-1.5 rounded-full bg-[#FFD500] px-4 text-[11px] font-bold text-gray-950 shadow-sm transition hover:bg-[#F4C800]">
+                                        <Plus size={14} strokeWidth={2.5} />
+                                        Tambah Material
+                                    </Link>
 
-                            <button type="button" aria-label="Notifikasi" className="grid h-9 w-9 place-items-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-900">
-                                <Bell size={17} strokeWidth={1.8} />
-                            </button>
-
-                            {isLoading ? (
-                                <div className="h-9 w-24 animate-pulse rounded-full bg-gray-100" />
-                            ) : isAuthenticated ? (
-                                <div ref={profileRef} className="relative">
-                                    <button type="button" onClick={() => setIsProfileOpen(value => !value)} className={`flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition ${isProfileOpen ? 'bg-gray-100' : 'hover:bg-gray-50'}`}>
-                                        <div className="relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-[#716018] ring-2 ring-white">
-                                            {userPhoto ? <img src={userPhoto} alt={userName} className="h-full w-full object-cover" /> : <User size={15} className="text-white" />}
-                                            <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border-[1.5px] border-white bg-emerald-500" />
-                                        </div>
-
-                                        <div className="max-w-[110px] text-left leading-none">
-                                            <p className="truncate text-[11px] font-bold text-gray-900">{userName}</p>
-                                            <p className="mt-1 text-[8px] font-medium text-emerald-600">Online</p>
-                                        </div>
-
-                                        <ChevronDown size={13} className={`text-gray-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+                                    <button type="button" aria-label="Notifikasi" className="grid h-9 w-9 place-items-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-900">
+                                        <Bell size={17} strokeWidth={1.8} />
                                     </button>
 
-                                    <AnimatePresence>
-                                        {isProfileOpen && (
-                                            <motion.div initial={{ opacity: 0, y: -6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: 0.97 }} className="absolute right-0 top-[calc(100%+10px)] w-56 origin-top-right overflow-hidden rounded-2xl border border-gray-100 bg-white p-2 shadow-[0_18px_45px_rgba(15,23,42,.12)]">
-                                                <div className="mb-1 rounded-xl bg-gray-50 px-3 py-2.5">
-                                                    <p className="truncate text-[11px] font-bold text-gray-900">{userName}</p>
-                                                    <p className="mt-1 truncate text-[9px] text-gray-400">{user?.email}</p>
+                                    {/* Profil tetap menggunakan skeleton ringan agar area kanan tidak kosong mendadak */}
+                                    {isLoading ? (
+                                        <div className="h-9 w-[110px] animate-pulse rounded-full bg-gray-100" />
+                                    ) : (
+                                        <div ref={profileRef} className="relative">
+                                            <button type="button" onClick={() => setIsProfileOpen(value => !value)} className={`flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition ${isProfileOpen ? 'bg-gray-100' : 'hover:bg-gray-50'}`}>
+                                                <div className="relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-[#716018] ring-2 ring-white">
+                                                    {userPhoto ? <img src={userPhoto} alt={userName} className="h-full w-full object-cover" /> : <User size={15} className="text-white" />}
+                                                    <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border-[1.5px] border-white bg-emerald-500" />
                                                 </div>
 
-                                                <Link to="/profil" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 hover:text-gray-950">
-                                                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-gray-100"><User size={15} /></span>
-                                                    Profil
-                                                </Link>
+                                                <div className="max-w-[110px] text-left leading-none">
+                                                    <p className="truncate text-[11px] font-bold text-gray-900">{userName}</p>
+                                                    <p className="mt-1 text-[8px] font-medium text-emerald-600">Online</p>
+                                                </div>
 
-                                                <Link to="/pengaturan" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 hover:text-gray-950">
-                                                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-gray-100"><Settings size={15} /></span>
-                                                    Pengaturan
-                                                </Link>
+                                                <ChevronDown size={13} className={`text-gray-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+                                            </button>
 
-                                                <div className="my-1 border-t border-gray-100" />
+                                            <AnimatePresence>
+                                                {isProfileOpen && (
+                                                    <motion.div initial={{ opacity: 0, y: -6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: 0.97 }} className="absolute right-0 top-[calc(100%+10px)] w-56 origin-top-right overflow-hidden rounded-2xl border border-gray-100 bg-white p-2 shadow-[0_18px_45px_rgba(15,23,42,.12)]">
+                                                        <div className="mb-1 rounded-xl bg-gray-50 px-3 py-2.5">
+                                                            <p className="truncate text-[11px] font-bold text-gray-900">{userName}</p>
+                                                            <p className="mt-1 truncate text-[9px] text-gray-400">{user?.email}</p>
+                                                        </div>
 
-                                                <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-red-500 transition hover:bg-red-50">
-                                                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-red-50"><LogOut size={15} /></span>
-                                                    Keluar
-                                                </button>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                            ) : (
+                                                        <Link to="/profil" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 hover:text-gray-950">
+                                                            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gray-100"><User size={15} /></span>
+                                                            Profil
+                                                        </Link>
+
+                                                        <Link to="/pengaturan" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 hover:text-gray-950">
+                                                            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gray-100"><Settings size={15} /></span>
+                                                            Pengaturan
+                                                        </Link>
+
+                                                        <div className="my-1 border-t border-gray-100" />
+
+                                                        <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-red-500 transition hover:bg-red-50">
+                                                            <span className="grid h-8 w-8 place-items-center rounded-lg bg-red-50"><LogOut size={15} /></span>
+                                                            Keluar
+                                                        </button>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Guest Start HANYA dirender saat dipastikan tidak loading dan belum login */}
+                            {!isLoading && !isAuthenticated && (
                                 <Link to="/login" className="flex h-9 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 text-[11px] font-bold text-gray-800 shadow-sm transition hover:border-[#FFD500] hover:bg-[#FFFBEA]">
                                     Guest Start
                                     <ArrowRight size={13} />
@@ -190,19 +198,35 @@ export default function Navbar() {
 
                                 <div className="my-3 border-t border-gray-100" />
 
-                                {isAuthenticated ? (
+                                {/* Guest Start Mobile dicegah berkedip dengan logika yang sama */}
+                                {!isLoading && !isAuthenticated ? (
+                                    <Link to="/login" onClick={() => setIsOpen(false)} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#FFD500] text-xs font-black text-gray-950 shadow-sm">
+                                        Guest Start
+                                        <ArrowRight size={15} />
+                                    </Link>
+                                ) : (
                                     <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#716018]">
-                                                {userPhoto ? <img src={userPhoto} alt={userName} className="h-full w-full object-cover" /> : <User size={18} className="text-white" />}
-                                                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-gray-50 bg-emerald-500" />
+                                        {isLoading ? (
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200" />
+                                                <div className="flex-1 space-y-1.5">
+                                                    <div className="h-3.5 w-24 animate-pulse rounded-full bg-gray-200" />
+                                                    <div className="h-2 w-32 animate-pulse rounded-full bg-gray-200" />
+                                                </div>
                                             </div>
-
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-bold text-gray-900">{userName}</p>
-                                                <p className="truncate text-[10px] text-gray-400">{user?.email}</p>
+                                        ) : (
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#716018]">
+                                                    {userPhoto ? <img src={userPhoto} alt={userName} className="h-full w-full object-cover" /> : <User size={18} className="text-white" />}
+                                                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-gray-50 bg-emerald-500" />
+                                                </div>
+    
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="truncate text-sm font-bold text-gray-900">{userName}</p>
+                                                    <p className="truncate text-[10px] text-gray-400">{user?.email}</p>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
 
                                         <div className="mt-3 grid grid-cols-2 gap-2">
                                             <Link to="/profil" onClick={() => setIsOpen(false)} className="flex h-10 items-center justify-center gap-2 rounded-xl bg-white text-[11px] font-bold text-gray-700 shadow-sm transition hover:bg-gray-100">
@@ -221,11 +245,6 @@ export default function Navbar() {
                                             Keluar
                                         </button>
                                     </div>
-                                ) : (
-                                    <Link to="/login" onClick={() => setIsOpen(false)} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#FFD500] text-xs font-black text-gray-950 shadow-sm">
-                                        Guest Start
-                                        <ArrowRight size={15} />
-                                    </Link>
                                 )}
                             </div>
                         </motion.div>
