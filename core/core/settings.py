@@ -29,9 +29,12 @@ SECRET_KEY = 'django-insecure-)d!1=ok$_0pnim%+s91g5h%xis0!8*&&x$bwu=jjb9+tbk2_6#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['.vercel.app','localhost', '127.0.0.1']
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 dotenv.load_dotenv(os.path.join(BASE_DIR, '.env'))
+
 CORS_ALLOW_ALL_ORIGINS = True
 # Application definition
 
@@ -153,5 +156,19 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+
+
+DEFAULT_FILE_STORAGE = 'core.core.storage.SupabaseStorage'
+
+STORAGES = {
+    "default": {
+        "BACKEND": "core.storage.SupabaseStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+MEDIA_URL = '/media/'
 
 GOOGLE_CLIENT_ID = "497788560869-tr6847ke129tnbh6ao5s59r61sflhir2.apps.googleusercontent.com"
