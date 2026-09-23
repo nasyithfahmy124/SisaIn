@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.conf import settings
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from .models import AkunProfile
 from shop.models import MaterialForm
 from shop.serializers import MaterialFormSerializer
@@ -18,7 +18,9 @@ User = get_user_model()
 
 
 class RegistView(APIView):
-    serializers_class = RegisterSeri
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    serializer_class = RegisterSeri
     def get(self, request):
         return Response({'message': 'Silakan kirim request POST untuk mendaftar.'})
     
