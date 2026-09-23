@@ -5,7 +5,6 @@ from supabase import create_client, Client
 
 class SupabaseStorage(Storage):
     def __init__(self):
-        # Mengambil nilai dari environment variables (.env)
         self.base_url = os.environ.get("SUPABASE_URL")
         self.key = os.environ.get("SUPABASE_KEY")
         self.bucket_name = os.environ.get("SUPABASE_BUCKET_NAME", "sisain")

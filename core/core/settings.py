@@ -157,7 +157,7 @@ MAILERS = {
     },
 }
 
-DEFAULT_FILE_STORAGE = 'core.storage.SupabaseStorage'
+DEFAULT_FILE_STORAGE = 'core.core.storage.SupabaseStorage'
 
 MEDIA_URL = '/media/'
 
