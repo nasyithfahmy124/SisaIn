@@ -1,19 +1,20 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { GoogleOAuthProvider } from "@react-oauth/google"; // <-- Import ditambahkan di sini
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import MainLayout from "../layout/MainLayout";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 import SplashScreen from "../pages/SplashScreen";
 
-// Import halaman utama Sisain
 import Beranda from "../pages/Beranda";
 import Redistribusi from "../pages/redistribusi/Redistribusi";
 import Maps from "../pages/maps/Maps";
 import Profil from "../pages/profil/Profil";
 import Pengaturan from "../pages/setting/Pengaturan";
+
+import TambahMaterial from "../pages/TambahMaterial/Index";
 
 function RouteTransitions() {
   const location = useLocation();
@@ -22,15 +23,16 @@ function RouteTransitions() {
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
         
-        {/* Rute Awal & Autentikasi (Tanpa Navbar) */}
         <Route path="/" element={<SplashScreen />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         
-        {/* Rute Utama Sisain (Menggunakan Navbar dari MainLayout) */}
         <Route element={<MainLayout />}>
           <Route path="/beranda" element={<Beranda />} />
           <Route path="/redistribusi" element={<Redistribusi />} />
+          
+          <Route path="/redistribusi/material/new" element={<TambahMaterial />} />
+          
           <Route path="/maps" element={<Maps />} />
           <Route path="/profil" element={<Profil />} />
           <Route path="/pengaturan" element={<Pengaturan />} />

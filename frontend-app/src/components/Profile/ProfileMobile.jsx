@@ -1,179 +1,302 @@
-import React, { useMemo, useState } from 'react';
-import { Sparkles, Clock, MapPin, ArrowRight, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+    Shield, MapPin, CheckCircle2, ArrowRight, 
+    Recycle, Building2, Coins, Download, Plus, 
+    ExternalLink, Check, Award
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-const TAB_CONFIG = [
-    { key: 'semua', label: 'Semua' },
-    { key: 'berjalan', label: 'Berjalan' },
-    { key: 'selesai', label: 'Selesai' }
-];
-
-const STATUS_STYLES = {
-    active: 'bg-blue-50 text-blue-700 border-blue-100',
-    pending: 'bg-gray-100 text-gray-600 border-gray-200',
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-100'
-};
-
-const getFilteredHistories = (histories, activeTab) => {
-    if (activeTab === 'semua') return histories;
-    if (activeTab === 'berjalan') return histories.filter(({ type }) => type === 'active' || type === 'pending');
-    return histories.filter(({ type }) => type === 'success');
-};
-
-const getTabCount = (histories, tab) => {
-    if (tab === 'semua') return histories.length;
-    if (tab === 'berjalan') return histories.filter(({ type }) => type === 'active' || type === 'pending').length;
-    return histories.filter(({ type }) => type === 'success').length;
-};
-
-export default function ProfileHistory({ histories = [] }) {
+export default function ProfileMobile({
+    user = {
+        name: "Budi Santoso",
+        location: "Kec. Candisari, Kota Semarang",
+        level: "Level 2: Mitra Berdaya",
+        message: "Terima kasih telah menyalurkan sisa material konstruksi untuk renovasi fasilitas warga Semarang.",
+        avatar: "/src/assets/img/avatar.png"
+    },
+    stats = {
+        savedTotal: "185",
+        savedUnit: "Kg+",
+        projectCount: 3,
+        co2Saved: "0.42t CO2e",
+        topArea: "Candisari"
+    },
+    impact = {
+        coins: 320,
+        weeklyBonus: 45,
+        popularProject: {
+            title: "Perbaikan Jalan Gang RT 03/RW 05 Pleburan",
+            desc: "Kebutuhan: Semen & Paving block sisa proyek",
+            progress: 78
+        }
+    },
+    histories = [
+        {
+            id: 1,
+            type: "active",
+            title: "Kayu Kaso Bekas Bekisting",
+            amount: "12 Batang",
+            aiTag: "AI Terverifikasi 85%",
+            status: "Dijemput Panitia Balai Warga",
+            image: "https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&q=80&w=200",
+            statusColor: "text-yellow-700"
+        },
+        {
+            id: 2,
+            type: "pending",
+            title: "Semen Portland PCC 40kg",
+            amount: "4 Sak",
+            aiTag: "AI: Kering & Utuh",
+            status: "⇄ Tercocokkan: Musala Al-Ikhlas",
+            image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=200",
+            statusColor: "text-emerald-700"
+        },
+        {
+            id: 3,
+            type: "success",
+            title: "Keramik Lantai Putih (12 Dus)",
+            desc: "100% Tersalurkan • 12 Nov",
+            bapLink: "#"
+        }
+    ]
+}) {
     const [activeTab, setActiveTab] = useState('semua');
 
-    const filteredHistories = useMemo(() => getFilteredHistories(histories, activeTab), [histories, activeTab]);
+    // Filter dinamis untuk riwayat
+    const filteredHistories = histories.filter((item) => {
+        if (activeTab === 'semua') return true;
+        if (activeTab === 'berjalan') return item.type === 'active' || item.type === 'pending';
+        if (activeTab === 'selesai') return item.type === 'success';
+        return true;
+    });
+
+    const countTab = (tab) => {
+        if (tab === 'semua') return histories.length;
+        if (tab === 'berjalan') return histories.filter(i => i.type === 'active' || i.type === 'pending').length;
+        if (tab === 'selesai') return histories.filter(i => i.type === 'success').length;
+    };
 
     return (
-        <section className="w-full">
-            <header className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="flex items-center gap-1.5 text-lg font-black tracking-tight text-gray-900 sm:text-xl">
-                    Riwayat & Donasi Aktif
-                    <Sparkles className="h-4 w-4 shrink-0 text-yellow-400" />
-                </h3>
-
-                <div className="-mx-1 overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:px-0">
-                    <div className="flex w-max items-center rounded-full border border-gray-200/70 bg-gray-100/80 p-0.5">
-                        {TAB_CONFIG.map(({ key, label }) => {
-                            const isActive = activeTab === key;
-                            const count = getTabCount(histories, key);
-
-                            return (
-                                <button key={key} type="button" onClick={() => setActiveTab(key)} className={`rounded-full px-3 py-1.5 text-[9px] font-bold transition-all duration-200 sm:px-3.5 ${isActive ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>
-                                    {label} ({count})
-                                </button>
-                            );
-                        })}
+        <div className="bg-[#FAF9F7] min-h-screen pb-24 font-sans">
+            
+            {/* HERO SECTION */}
+            <div className="bg-[#FFCC00] rounded-b-[40px] px-5 pt-6 pb-8 shadow-sm">
+                
+                {/* Top Badges */}
+                <div className="flex justify-between items-center mb-5">
+                    <div className="bg-white rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-sm">
+                        <Shield className="w-3.5 h-3.5 text-yellow-600" />
+                        <span className="text-[10px] font-black text-gray-800 tracking-wide">PROFIL DONATUR</span>
+                    </div>
+                    <div className="bg-gray-900 rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-sm">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span className="text-[10px] font-bold text-white tracking-wide">{user.level}</span>
                     </div>
                 </div>
-            </header>
 
-            <div className="space-y-3">
-                {filteredHistories.length === 0 ? (
-                    <div className="rounded-2xl border border-gray-100 bg-white px-5 py-10 text-center shadow-sm">
-                        <p className="text-xs font-medium text-gray-500">Belum ada riwayat di kategori ini.</p>
+                {/* Profil Info */}
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="relative">
+                        <img src={user.avatar} alt={user.name} className="w-14 h-14 rounded-full border-2 border-white object-cover bg-gray-200" />
+                        <div className="absolute -bottom-1 -right-1 bg-emerald-500 rounded-full p-0.5 border-2 border-[#FFCC00]">
+                            <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                        </div>
                     </div>
-                ) : (
-                    filteredHistories.map((item) => {
-                        const isSuccess = item.type === 'success';
+                    <div>
+                        <h1 className="text-xl font-black text-gray-900 flex items-center gap-1.5">
+                            {user.name} <Award className="w-4 h-4 text-gray-800" fill="currentColor" />
+                        </h1>
+                        <p className="text-xs font-medium text-gray-700 flex items-center gap-1 mt-0.5">
+                            <MapPin className="w-3.5 h-3.5" /> {user.location}
+                        </p>
+                    </div>
+                </div>
 
-                        return (
-                            <article key={item.id} className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-yellow-200 hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)]">
-                                {isSuccess ? (
-                                    <div className="flex items-center gap-3 px-3.5 py-3.5 sm:px-4">
-                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50">
-                                            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                                        </div>
+                {/* Deskripsi Hero */}
+                <h2 className="text-lg font-black text-gray-900 mb-1.5">Kontribusi Kebaikan Anda</h2>
+                <p className="text-xs font-medium text-gray-800/80 leading-relaxed mb-6">
+                    {user.message}
+                </p>
 
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex min-w-0 items-center gap-1.5">
-                                                <h4 className="min-w-0 truncate text-[10px] font-black leading-tight text-gray-900 sm:text-[12px]">{item.title}</h4>
+                {/* Statistik Cards */}
+                <div className="grid grid-cols-2 gap-3">
+                    {/* Stat 1 */}
+                    <div className="bg-white rounded-2xl p-3.5 shadow-sm relative">
+                        <div className="flex justify-between items-start mb-2">
+                            <Recycle className="w-5 h-5 text-yellow-700" />
+                            <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-2 py-1 rounded-full">
+                                {stats.co2Saved}
+                            </span>
+                        </div>
+                        <h3 className="text-2xl font-black text-gray-900">{stats.savedTotal} <span className="text-lg">{stats.savedUnit}</span></h3>
+                        <p className="text-[9px] font-medium text-gray-500 mt-0.5">Material Sisa Tersalurkan</p>
+                    </div>
 
-                                                <span className="shrink-0 rounded-full bg-emerald-500 px-2 py-0.5 text-[7px] font-bold text-white sm:text-[8px]">
-                                                    100% Tersalurkan
-                                                </span>
-                                            </div>
-
-                                            <p className="mt-1 truncate text-[8px] font-medium leading-relaxed text-gray-500 sm:text-[9px]">{item.desc}</p>
-
-                                            <span className="mt-1 block text-[7px] font-medium text-gray-400 sm:text-[8px]">{item.time}</span>
-                                        </div>
-
-                                        {item.actionType === 'link' && (
-                                            <button type="button" className="hidden shrink-0 items-center gap-1 whitespace-nowrap text-[8px] font-bold text-yellow-600 transition-colors hover:text-yellow-700 sm:flex sm:text-[9px]">
-                                                Buka Berita Acara
-                                                <ArrowRight className="h-2.5 w-2.5" />
-                                            </button>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="p-3 sm:grid sm:grid-cols-[140px_minmax(0,1fr)_auto] sm:items-center sm:gap-3.5 sm:p-4">
-                                        <div className="relative h-[150px] w-full overflow-hidden rounded-xl bg-gray-100 sm:h-[82px] sm:w-[140px]">
-                                            <img src={item.image} alt={item.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-
-                                            <span className="absolute left-2 top-2 rounded-md bg-white/95 px-2 py-1 text-[8px] font-bold text-gray-800 shadow-sm backdrop-blur">
-                                                {item.amount || 'Item'}
-                                            </span>
-                                        </div>
-
-                                        <div className="min-w-0 px-0.5 pt-3 sm:px-0 sm:py-0.5 sm:pt-0">
-                                            <div className="mb-1.5 flex min-w-0 items-center gap-1.5">
-                                                <span className={`shrink-0 rounded-md border px-2 py-0.5 text-[8px] font-bold ${STATUS_STYLES[item.type] || STATUS_STYLES.pending}`}>
-                                                    {item.status}
-                                                </span>
-
-                                                <span className="flex min-w-0 items-center gap-1 truncate text-[8px] font-medium text-gray-400">
-                                                    <Clock className="h-2.5 w-2.5 shrink-0" />
-                                                    {item.time}
-                                                </span>
-                                            </div>
-
-                                            <h4 className="truncate text-[12px] font-black leading-tight text-gray-900 sm:text-[13px]">{item.title}</h4>
-
-                                            <p className="mt-1 truncate text-[9px] font-medium leading-relaxed text-gray-500">{item.desc}</p>
-
-                                            <div className="mt-2 flex min-w-0 items-center gap-1.5 overflow-hidden">
-                                                {item.location && (
-                                                    <span className="inline-flex max-w-[55%] shrink-0 items-center gap-1 truncate rounded-md border border-gray-100 bg-gray-50 px-2 py-1 text-[8px] font-bold text-gray-600">
-                                                        <MapPin className="h-2.5 w-2.5 shrink-0 text-gray-400" />
-                                                        <span className="truncate">{item.location}</span>
-                                                    </span>
-                                                )}
-
-                                                {item.tags?.map((tag, index) => (
-                                                    <span key={`${tag}-${index}`} className="inline-flex max-w-[45%] shrink-0 items-center gap-1 truncate rounded-md border border-yellow-100 bg-yellow-50 px-2 py-1 text-[8px] font-bold text-yellow-700">
-                                                        <span className="shrink-0 text-[6px]">●</span>
-                                                        <span className="truncate">{tag}</span>
-                                                    </span>
-                                                ))}
-                                            </div>
-
-                                            {item.actionType === 'button' && (
-                                                <button type="button" className="mt-3 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-[9px] font-bold text-gray-700 transition-colors hover:bg-gray-100 sm:hidden">
-                                                    Lihat Detail
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        <div className="hidden shrink-0 items-center justify-end sm:flex">
-                                            {item.actionType === 'arrow' && (
-                                                <button type="button" aria-label="Lihat donasi" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FFBD00] shadow-sm transition-all duration-200 hover:scale-105 hover:bg-yellow-400 hover:shadow-md">
-                                                    <ArrowRight className="h-4 w-4 text-gray-900" />
-                                                </button>
-                                            )}
-
-                                            {item.actionType === 'button' && (
-                                                <button type="button" className="whitespace-nowrap rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-[8px] font-bold text-gray-700 transition-colors hover:bg-gray-100">
-                                                    Lihat Detail
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {item.actionType === 'arrow' && (
-                                            <button type="button" aria-label="Lihat donasi" className="mt-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#FFBD00] shadow-sm transition-all duration-200 hover:scale-105 hover:bg-yellow-400 hover:shadow-md sm:hidden">
-                                                <ArrowRight className="h-4 w-4 text-gray-900" />
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-
-                                {isSuccess && item.actionType === 'link' && (
-                                    <button type="button" className="flex w-full items-center justify-end gap-1 border-t border-gray-50 px-4 py-2.5 text-[8px] font-bold text-yellow-600 transition-colors hover:text-yellow-700 sm:hidden">
-                                        Buka Berita Acara
-                                        <ArrowRight className="h-2.5 w-2.5" />
-                                    </button>
-                                )}
-                            </article>
-                        );
-                    })
-                )}
+                    {/* Stat 2 */}
+                    <div className="bg-white rounded-2xl p-3.5 shadow-sm relative">
+                        <div className="flex justify-between items-start mb-2">
+                            <Building2 className="w-5 h-5 text-red-400" />
+                            <span className="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-1 rounded-full">
+                                {stats.topArea}
+                            </span>
+                        </div>
+                        <h3 className="text-2xl font-black text-gray-900">{stats.projectCount} Proyek</h3>
+                        <p className="text-[9px] font-medium text-gray-500 mt-0.5">Fasum & Jalan Warga</p>
+                    </div>
+                </div>
             </div>
-        </section>
+
+            {/* KONTEN UTAMA BAWAH */}
+            <div className="px-5 mt-6 space-y-6">
+                
+                {/* RIWAYAT SECTION */}
+                <div>
+                    <div className="flex justify-between items-end mb-3">
+                        <h3 className="text-[17px] font-black text-gray-900">Riwayat & Donasi Aktif</h3>
+                        <span className="text-[10px] font-semibold text-gray-500">Update 10m lalu</span>
+                    </div>
+
+                    {/* Tabs */}
+                    <div className="flex gap-2 mb-4 overflow-x-auto hide-scrollbar pb-1">
+                        {['semua', 'berjalan', 'selesai'].map((tab) => (
+                            <button 
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[11px] font-bold capitalize transition-colors ${
+                                    activeTab === tab 
+                                    ? 'bg-gray-900 text-white shadow-sm' 
+                                    : 'bg-gray-200/70 text-gray-600'
+                                }`}
+                            >
+                                {tab} ({countTab(tab)})
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* List Riwayat */}
+                    <div className="space-y-3">
+                        {filteredHistories.map((item) => (
+                            item.type === 'success' ? (
+                                // Card Success
+                                <div key={item.id} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
+                                            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-black text-gray-900">{item.title}</h4>
+                                            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">{item.desc}</p>
+                                        </div>
+                                    </div>
+                                    <Link to={item.bapLink} className="flex items-center gap-1 text-[10px] font-bold text-gray-600 hover:text-gray-900 bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-200">
+                                        BAP <ExternalLink className="w-3 h-3" />
+                                    </Link>
+                                </div>
+                            ) : (
+                                // Card Active / Pending
+                                <div key={item.id} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 items-center">
+                                    <div className="w-[72px] h-[72px] rounded-xl overflow-hidden relative shrink-0">
+                                        <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                        <div className="absolute top-1 left-1 bg-gray-900/80 backdrop-blur text-white px-1.5 py-0.5 rounded text-[8px] font-bold">
+                                            {item.amount}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex-1 min-w-0 py-0.5">
+                                        <span className="inline-block bg-gray-900 text-white text-[9px] font-bold px-2 py-0.5 rounded-full mb-1">
+                                            {item.aiTag}
+                                        </span>
+                                        <h4 className="text-xs font-black text-gray-900 truncate mb-1">{item.title}</h4>
+                                        <p className={`text-[10px] font-bold truncate ${item.statusColor}`}>
+                                            ● {item.status}
+                                        </p>
+                                    </div>
+
+                                    <button className="w-9 h-9 rounded-full bg-[#FFCC00] flex items-center justify-center shrink-0 shadow-sm transition-transform active:scale-95">
+                                        <ArrowRight className="w-4 h-4 text-gray-900" />
+                                    </button>
+                                </div>
+                            )
+                        ))}
+                    </div>
+                </div>
+
+                {/* KOIN DAMPAK SECTION */}
+                <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="flex gap-3">
+                            <div className="w-10 h-10 bg-[#FFCC00] rounded-full flex items-center justify-center shrink-0 border-2 border-yellow-200">
+                                <div className="w-5 h-5 bg-gray-900 rounded-full flex items-center justify-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFCC00] rounded-full"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-base font-black text-gray-900">{impact.coins} Koin Dampak</h3>
+                                <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">+{impact.weeklyBonus} Koin dari donasi kayu minggu ini</p>
+                            </div>
+                        </div>
+                        <span className="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-1.5 rounded-lg whitespace-nowrap">
+                            Saldo Non-Tunai
+                        </span>
+                    </div>
+
+                    <div className="bg-[#FFF9E5] rounded-xl p-3.5 mb-4 border border-yellow-100">
+                        <h4 className="text-[11px] font-bold text-yellow-900 flex items-center gap-1.5 mb-1">
+                            <Shield className="w-3.5 h-3.5" /> Hak Suara Sirkular Warga
+                        </h4>
+                        <p className="text-[10px] text-yellow-800/80 font-medium leading-relaxed">
+                            Gunakan koin Anda untuk memprioritaskan alokasi sisa material bagi perbaikan fasilitas lingkungan Semarang.
+                        </p>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="bg-red-100 text-red-700 text-[9px] font-bold px-2 py-0.5 rounded-full">Dibutuhkan Mendesak</span>
+                            <span className="text-[9px] font-bold text-gray-500">{impact.popularProject.progress}% Terpenuhi</span>
+                        </div>
+                        <h4 className="text-xs font-black text-gray-900 mb-1 truncate">{impact.popularProject.title}</h4>
+                        <p className="text-[10px] text-gray-500 mb-3 truncate">{impact.popularProject.desc}</p>
+                        
+                        <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-yellow-700 h-1.5 rounded-full" style={{ width: `${impact.popularProject.progress}%` }}></div>
+                        </div>
+                    </div>
+
+                    <button className="w-full bg-[#FFCC00] text-gray-900 text-xs font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:bg-yellow-500 transition-colors">
+                        Gunakan Koin untuk Vote <ArrowRight className="w-4 h-4" />
+                    </button>
+                </div>
+
+                {/* SERTIFIKAT SECTION */}
+                <div className="bg-[#F0FDF4] rounded-2xl p-4 flex items-center justify-between border border-emerald-100">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
+                            <Award className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                            <h4 className="text-xs font-bold text-gray-900">Sertifikat Jejak Karbon Q4 2026</h4>
+                            <p className="text-[9px] font-semibold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+                                <CheckCircle2 className="w-3 h-3" /> Terverifikasi Badan Sertifikasi
+                            </p>
+                        </div>
+                    </div>
+                    <button className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 shrink-0">
+                        <Download className="w-4 h-4 text-gray-700" />
+                    </button>
+                </div>
+
+                {/* CTA DONASI BARU */}
+                <div className="bg-[#FFCC00] rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                    <div>
+                        <p className="text-[9px] font-bold text-yellow-900 uppercase tracking-wider mb-0.5">Aksi Cepat</p>
+                        <h3 className="text-sm font-black text-gray-900">Punya sisa renovasi?</h3>
+                    </div>
+                    <Link to="/redistribusi/material/new" className="bg-gray-900 text-white text-[11px] font-bold px-4 py-2.5 rounded-full flex items-center gap-1.5 shrink-0">
+                        <Plus className="w-3.5 h-3.5" /> Donasi Baru
+                    </Link>
+                </div>
+
+            </div>
+        </div>
     );
 }
