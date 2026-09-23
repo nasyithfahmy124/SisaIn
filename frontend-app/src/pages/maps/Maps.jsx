@@ -1,51 +1,37 @@
-import React from 'react';
-import { MapPin, Search, SlidersHorizontal } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useMemo, useState } from 'react';
+import MapSidebar from '../../components/Map/MapSidebar';
+import MapView from '../../components/Map/MapView';
+import { mapItems } from '../../components/Map/mapData';
 
 export default function Maps() {
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-[calc(100vh-80px)] flex flex-col md:flex-row">
-      {/* Sidebar List Barang */}
-      <div className="w-full md:w-96 bg-white border-r border-gray-200 flex flex-col h-full shadow-lg z-10 relative">
-        <div className="p-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Material Terdekat</h2>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Cari keramik, semen, dll..." 
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
-            />
-          </div>
-          <div className="flex items-center gap-2 mt-4 overflow-x-auto hide-scrollbar pb-1">
-            <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">Radius 5 km</span>
-            <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap">Klaim Bebas</span>
-          </div>
-        </div>
+    const [filter, setFilter] = useState('Semua');
+    const [search, setSearch] = useState('');
+    const [selected, setSelected] = useState(mapItems[0]);
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-           {/* Contoh Item List */}
-           <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-sm hover:border-yellow-400 cursor-pointer transition-colors">
-              <div className="flex gap-3">
-                <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0" />
-                <div>
-                  <h4 className="font-semibold text-sm text-gray-800">Keramik Sisa 4 Kotak</h4>
-                  <p className="text-xs text-gray-500 flex items-center gap-1 mt-1"><MapPin className="w-3 h-3" /> 2.1 km dari Anda</p>
-                </div>
-              </div>
-           </div>
-        </div>
-      </div>
+    const items = useMemo(() => {
+        const keyword = search.trim().toLowerCase();
 
-      {/* Area Peta (Placeholder) */}
-      <div className="flex-1 bg-gray-100 relative flex items-center justify-center">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20" />
-        <div className="z-10 text-center">
-          <MapPin className="w-12 h-12 text-yellow-500 mx-auto mb-3 animate-bounce" />
-          <h3 className="text-lg font-semibold text-gray-700">Peta Sedang Dimuat...</h3>
-          <p className="text-sm text-gray-500">Integrasi Leaflet.js akan ditampilkan di sini.</p>
-        </div>
-      </div>
-    </motion.div>
-  );
+        return mapItems.filter(item => {
+            const material = item.material?.toLowerCase() || '';
+            const need = item.need?.toLowerCase() || '';
+            const title = item.title?.toLowerCase() || '';
+            const address = item.address?.toLowerCase() || '';
+            const filterMatch = filter === 'Semua' || material.includes(filter.toLowerCase()) || need.includes(filter.toLowerCase());
+            const searchMatch = !keyword || material.includes(keyword) || need.includes(keyword) || title.includes(keyword) || address.includes(keyword);
+
+            return filterMatch && searchMatch;
+        });
+    }, [filter, search]);
+
+    return (
+        <main className="min-h-[calc(100vh-72px)] bg-white">
+            <div className="flex min-h-[calc(100vh-72px)] flex-col lg:flex-row">
+                <MapSidebar items={items} filter={filter} setFilter={setFilter} search={search} setSearch={setSearch} selected={selected} onSelect={setSelected} />
+
+                <section className="order-first flex-1 p-3 lg:order-last lg:p-4">
+                    <MapView items={items} selected={selected} onSelect={setSelected} />
+                </section>
+            </div>
+        </main>
+    );
 }

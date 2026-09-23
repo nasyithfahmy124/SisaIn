@@ -5,3 +5,133 @@
 body {
   font-family: 'Poppins', sans-serif;
 }
+
+@import "tailwindcss";
+
+:root {
+  font-family: "Plus Jakarta Sans", Inter, system-ui, sans-serif;
+  color: #111827;
+  background: #fff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #fff;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.map-marker {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.2);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.map-marker:hover {
+  transform: scale(1.12);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
+}
+
+.map-supply {
+  background: #f5b400;
+  color: #111827;
+}
+
+.map-demand {
+  background: #111827;
+  color: #f5b400;
+}
+
+.maplibregl-map {
+  font-family: inherit;
+}
+
+.maplibregl-ctrl-group {
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1) !important;
+}
+
+.maplibregl-ctrl-group button {
+  width: 38px !important;
+  height: 38px !important;
+}
+.maplibregl-popup {
+  max-width: none !important; 
+}
+
+.maplibregl-popup-content {
+  padding: 0 !important;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+}
+
+.maplibregl-popup-close-button {
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111827;
+  font-size: 16px;
+  line-height: 1;
+  z-index: 2;
+}
+
+.maplibregl-popup-close-button:hover {
+  background: #f5b400;
+}
+
+.maplibregl-ctrl-attrib {
+  font-size: 8px !important;
+  opacity: 0.65;
+}
+
+.maplibregl-canvas {
+  outline: none;
+}
+
+
+.sisain-popup .maplibregl-popup-content {
+    padding: 0;
+    border-radius: 22px;
+    overflow: hidden;
+    background: transparent;
+    box-shadow: none;
+}
+
+.sisain-popup .maplibregl-popup-tip {
+    border-top-color: white;
+}
+
+.sisain-popup .maplibregl-popup-close-button {
+    display: none;
+}
