@@ -157,8 +157,18 @@ MAILERS = {
     },
 }
 
+
+
 DEFAULT_FILE_STORAGE = 'core.core.storage.SupabaseStorage'
 
+STORAGES = {
+    "default": {
+        "BACKEND": "core.storage.SupabaseStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 MEDIA_URL = '/media/'
 
 GOOGLE_CLIENT_ID = "497788560869-tr6847ke129tnbh6ao5s59r61sflhir2.apps.googleusercontent.com"
