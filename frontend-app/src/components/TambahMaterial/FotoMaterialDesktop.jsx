@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { 
-    Camera, Image as ImageIcon, CheckCircle2, XCircle, 
+import {
+    Camera, Image as ImageIcon, CheckCircle2, XCircle,
     Cpu, MapPin, Leaf, ShieldCheck, ArrowRight, Lightbulb,
-    Check, AlertCircle, Box, Truck, Building2, UploadCloud, 
-    X, RotateCcw 
+    Check, AlertCircle, Box, Truck, Building2, UploadCloud,
+    X, RotateCcw
 } from 'lucide-react';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -48,7 +48,7 @@ export default function FotoMaterial({ onNextStep }) {
         }
 
         if (previewUrl) URL.revokeObjectURL(previewUrl);
-        
+
         setSelectedFile(file);
         setPreviewUrl(URL.createObjectURL(file));
     };
@@ -101,7 +101,7 @@ export default function FotoMaterial({ onNextStep }) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-        
+
         canvas.toBlob((blob) => {
             if (!blob) return;
             const file = new File([blob], `material-${Date.now()}.jpg`, { type: 'image/jpeg' });
@@ -113,7 +113,7 @@ export default function FotoMaterial({ onNextStep }) {
 
     // Simulation
     const handleSimulate = (type) => {
-        const dummyUrl = type === 'semen' 
+        const dummyUrl = type === 'semen'
             ? 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=600'
             : 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=600';
         setPreviewUrl(dummyUrl);
@@ -126,12 +126,17 @@ export default function FotoMaterial({ onNextStep }) {
     };
 
     return (
-        <div className="min-h-screen bg-[#FAF9F7] font-sans pb-20">
+        <div className="min-h-screen bg-[#FCF9F8] font-sans pb-20 relative overflow-hidden">
+
+            {/* Background Radial Glows */}
+            <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[#FFCC00]/15 blur-[120px] rounded-full pointer-events-none z-0"></div>
+            <div className="absolute top-[13%] right-[5%] w-[250px] h-[250px] bg-emerald-300/20 blur-[30px] rounded-full pointer-events-none z-0"></div>
+
             {/* Header & Stepper */}
-            <div className="pt-8 pb-12 bg-gradient-to-b from-[#F0FDF4]/50 to-transparent">
+            <div className="relative pt-8 pb-12 z-10">
                 <div className="max-w-[1200px] mx-auto px-6">
                     <p className="text-[11px] font-bold text-gray-500 mb-6">Beranda &gt; <span className="text-gray-900">Tambah Material</span></p>
-                    
+
                     {/* Stepper (Sesuai Desain) */}
                     <div className="flex items-center justify-center gap-4 mb-12">
                         <div className="flex items-center gap-2 bg-[#FFCC00] px-5 py-2 rounded-full shadow-sm">
@@ -155,14 +160,14 @@ export default function FotoMaterial({ onNextStep }) {
                         </div>
                     </div>
 
-                    {/* Judul Utama */}
-                    <div className="text-center max-w-2xl mx-auto">
+                    {/* Judul Utama (Hero Centered) */}
+                    <div className="text-center max-w-2xl mx-auto flex flex-col items-center justify-center">
                         <div className="inline-flex items-center gap-1.5 bg-emerald-100/50 text-emerald-700 px-3 py-1 rounded-full text-[9px] font-black tracking-wider uppercase mb-4 border border-emerald-200/50">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             Sistem Deteksi Sirkular Pintar V2.4
                         </div>
                         <h1 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Apa material surplus yang ingin kamu sirkulasikan?</h1>
-                        <p className="text-sm font-medium text-gray-600 leading-relaxed">
+                        <p className="text-sm font-medium text-gray-600 leading-relaxed max-w-xl text-center">
                             Cukup unggah foto material sisa proyekmu. AI Sisain akan mendeteksi jenis material, estimasi volume, dan kelayakan kondisinya secara otomatis.
                         </p>
                     </div>
@@ -170,11 +175,11 @@ export default function FotoMaterial({ onNextStep }) {
             </div>
 
             {/* Konten Utama 2 Kolom */}
-            <div className="max-w-[1200px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
+            <div className="relative z-10 max-w-[1200px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+
                 {/* KOLOM KIRI (Upload Area) */}
                 <div className="lg:col-span-7">
-                    <div 
+                    <div
                         className={`bg-white rounded-3xl p-8 relative transition-all duration-300 border-2 border-dashed ${isDragging ? 'border-yellow-400 bg-yellow-50/50' : 'border-transparent shadow-sm'}`}
                         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                         onDragLeave={() => setIsDragging(false)}
@@ -223,18 +228,23 @@ export default function FotoMaterial({ onNextStep }) {
                                 <p className="text-xs font-medium text-gray-500 mb-6">atau klik tombol di bawah untuk memilih file dari penyimpanan Anda</p>
 
                                 {/* Tombol Aksi */}
-                                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-                                    <button 
+                                <div className="flex w-full max-w-md gap-2.5">
+                                    <button
                                         onClick={openCamera}
-                                        className="flex-1 bg-gray-900 hover:bg-gray-800 text-white text-sm font-bold py-3.5 rounded-full flex items-center justify-center gap-2 transition-colors"
+                                        type="button"
+                                        className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-[#292824] px-4 text-[12px] font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#171613] active:translate-y-0"
                                     >
-                                        <Camera className="w-4 h-4" /> Buka Kamera Langsung
+                                        <Camera className="h-4 w-4 shrink-0" />
+                                        <span>Buka Kamera</span>
                                     </button>
-                                    <button 
+
+                                    <button
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-bold py-3.5 rounded-full flex items-center justify-center gap-2 transition-colors border border-gray-200"
+                                        type="button"
+                                        className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-[#E0DDD6] bg-[#F6F5F2] px-4 text-[12px] font-bold text-[#45423C] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm active:translate-y-0"
                                     >
-                                        <ImageIcon className="w-4 h-4" /> Pilih dari Galeri / Berkas
+                                        <ImageIcon className="h-4 w-4 shrink-0" />
+                                        <span>Galeri / Berkas</span>
                                     </button>
                                 </div>
 
@@ -249,13 +259,23 @@ export default function FotoMaterial({ onNextStep }) {
                         <input ref={fileInputRef} type="file" accept={ACCEPTED_TYPES.join(',')} onChange={handleInputChange} className="hidden" />
                     </div>
 
-                    {/* Simulasi Instan Bar */}
                     {!previewUrl && (
-                        <div className="mt-4 bg-yellow-50/50 border border-yellow-100 rounded-2xl p-3 flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-gray-600 flex items-center gap-1.5"><Lightbulb className="w-4 h-4 text-yellow-600"/> Gunakan foto contoh untuk uji coba instan:</span>
-                            <div className="flex gap-2">
-                                <button onClick={() => handleSimulate('semen')} className="bg-white hover:bg-gray-50 text-[10px] font-bold text-gray-700 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 transition-colors">Palet Semen Sak</button>
-                                <button onClick={() => handleSimulate('keramik')} className="bg-white hover:bg-gray-50 text-[10px] font-bold text-gray-700 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 transition-colors">Tumpukan Keramik</button>
+                        <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#EEE4BF] bg-[#FFFDF5] px-3 py-2">
+                            <div className="flex min-w-0 items-center gap-1.5">
+                                <Lightbulb className="h-3.5 w-3.5 shrink-0 text-[#B18C00]" />
+                                <span className="truncate text-[9px] font-semibold text-[#716B5D]">
+                                    Gunakan foto contoh untuk uji coba instan
+                                </span>
+                            </div>
+
+                            <div className="flex shrink-0 items-center gap-1">
+                                <button onClick={() => handleSimulate('semen')} type="button" className="h-8 rounded-full border border-[#E5E0D5] bg-white px-2 text-[6px] font-bold leading-none text-[#5B574F] transition hover:bg-[#FAF9F4] active:scale-95">
+                                    Palet Semen
+                                </button>
+
+                                <button onClick={() => handleSimulate('keramik')} type="button" className="h-8 rounded-full border border-[#E5E0D5] bg-white px-2 text-[6px] font-bold leading-none text-[#5B574F] transition hover:bg-[#FAF9F4] active:scale-95">
+                                    Tumpukan Keramik
+                                </button>
                             </div>
                         </div>
                     )}
@@ -263,7 +283,7 @@ export default function FotoMaterial({ onNextStep }) {
 
                 {/* KOLOM KANAN (Info & Action) */}
                 <div className="lg:col-span-5 space-y-6">
-                    
+
                     {/* Card 1: Tips */}
                     <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100">
                         <div className="flex items-center justify-between mb-5">
@@ -310,36 +330,65 @@ export default function FotoMaterial({ onNextStep }) {
                         </div>
                     </div>
 
-                    {/* Card 2: AI Info */}
-                    <div className="bg-[#FFFAEB] rounded-[24px] p-6 shadow-sm border border-yellow-100">
-                        <h3 className="font-black text-gray-900 flex items-center gap-2 mb-1">
-                            <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center">
-                                <Cpu className="w-4 h-4 text-yellow-400" />
+                    <div className="relative overflow-hidden rounded-[22px] border border-[#E7E3DA] bg-[radial-gradient(circle_at_0%_0%,rgba(255,216,55,0.95)_0%,rgba(255,216,55,0.6)_18%,rgba(255,239,157,0.3)_34%,rgba(255,255,255,0)_58%),linear-gradient(145deg,#FFF4B8_0%,#FFFDF8_42%,#FFFFFF_100%)] p-5 shadow-[0_6px_18px_rgba(35,30,20,0.07)]">
+                        <div className="relative z-10 mb-4 flex items-center gap-2.5">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#292824]">
+                                <Cpu className="h-4 w-4 text-[#FFCC00]" />
                             </div>
-                            Bagaimana AI Sisain Membantu?
-                        </h3>
-                        <p className="text-[10px] text-gray-600 font-medium mb-5 pl-10">Otomatisasi pengkatalogan tanpa input formulir manual</p>
 
-                        <div className="space-y-3">
-                            <div className="bg-white rounded-xl p-3 flex gap-3 shadow-sm border border-yellow-50">
-                                <div className="w-7 h-7 shrink-0 bg-emerald-50 rounded-lg flex items-center justify-center"><Box className="w-3.5 h-3.5 text-emerald-600" /></div>
-                                <div>
-                                    <h4 className="text-[10px] font-black text-gray-900 mb-0.5">Estimasi Kilogram & Satuan Otomatis</h4>
-                                    <p className="text-[9px] text-gray-500 leading-relaxed">Konversi tumpukan fisik menjadi satuan standar proyek (sak/m²/batang).</p>
+                            <div>
+                                <h3 className="text-[15px] font-black leading-tight tracking-[-0.2px] text-[#26241F]">
+                                    Bagaimana AI Sisain Membantu?
+                                </h3>
+                                <p className="mt-0.5 text-[9px] font-medium leading-tight text-[#716D64]">
+                                    Otomatisasi pengkatalogan tanpa input formulir manual
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="relative z-10 space-y-2.5">
+                            <div className="flex items-center gap-2.5 rounded-[14px] bg-white px-2.5 py-2.5 shadow-[0_2px_8px_rgba(35,30,20,0.04)]">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#DFF7EA]">
+                                    <Box className="h-4 w-4 text-[#008563]" />
+                                </div>
+
+                                <div className="min-w-0">
+                                    <h4 className="text-[10px] font-black leading-[1.25] text-[#302E29]">
+                                        Estimasi Kilogram & Satuan Otomatis
+                                    </h4>
+                                    <p className="mt-0.5 text-[9px] font-medium leading-[1.4] text-[#79746B]">
+                                        Konversi tumpukan fisik menjadi satuan standar proyek (sak/m²/batang).
+                                    </p>
                                 </div>
                             </div>
-                            <div className="bg-white rounded-xl p-3 flex gap-3 shadow-sm border border-yellow-50">
-                                <div className="w-7 h-7 shrink-0 bg-yellow-50 rounded-lg flex items-center justify-center"><MapPin className="w-3.5 h-3.5 text-yellow-600" /></div>
-                                <div>
-                                    <h4 className="text-[10px] font-black text-gray-900 mb-0.5">Rekomendasi Fasum & Warga Terdekat</h4>
-                                    <p className="text-[9px] text-gray-500 leading-relaxed">Mencocokkan surplus dengan balai warga, renovasi posyandu, atau bank material.</p>
+
+                            <div className="flex items-center gap-2.5 rounded-[14px] bg-white px-2.5 py-2.5 shadow-[0_2px_8px_rgba(35,30,20,0.04)]">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FFF1B8]">
+                                    <MapPin className="h-4 w-4 text-[#A18400]" />
+                                </div>
+
+                                <div className="min-w-0">
+                                    <h4 className="text-[10px] font-black leading-[1.25] text-[#302E29]">
+                                        Rekomendasi Fasum & Warga Terdekat
+                                    </h4>
+                                    <p className="mt-0.5 text-[9px] font-medium leading-[1.4] text-[#79746B]">
+                                        Mencocokkan surplus dengan balai warga, renovasi posyandu, atau bank material.
+                                    </p>
                                 </div>
                             </div>
-                            <div className="bg-white rounded-xl p-3 flex gap-3 shadow-sm border border-yellow-50">
-                                <div className="w-7 h-7 shrink-0 bg-red-50 rounded-lg flex items-center justify-center"><Leaf className="w-3.5 h-3.5 text-red-500" /></div>
-                                <div>
-                                    <h4 className="text-[10px] font-black text-gray-900 mb-0.5">Kalkulasi Emisi Karbon Terhindar</h4>
-                                    <p className="text-[9px] text-gray-500 leading-relaxed">Sertifikat kontribusi dekarbonisasi otomatis masuk ke profil donatur Anda.</p>
+
+                            <div className="flex items-center gap-2.5 rounded-[14px] bg-white px-2.5 py-2.5 shadow-[0_2px_8px_rgba(35,30,20,0.04)]">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FDE1DE]">
+                                    <Leaf className="h-4 w-4 text-[#D45B4D]" />
+                                </div>
+
+                                <div className="min-w-0">
+                                    <h4 className="text-[10px] font-black leading-[1.25] text-[#302E29]">
+                                        Kalkulasi Emisi Karbon Terhindar
+                                    </h4>
+                                    <p className="mt-0.5 text-[9px] font-medium leading-[1.4] text-[#79746B]">
+                                        Sertifikat kontribusi dekarbonisasi otomatis masuk ke profil donatur Anda.
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -350,20 +399,19 @@ export default function FotoMaterial({ onNextStep }) {
                         <div className="flex justify-between items-center mb-4">
                             <span className="text-[11px] font-bold text-gray-600">Status Foto Material:</span>
                             {previewUrl ? (
-                                <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1"><Check className="w-3 h-3"/> Siap Dianalisis</span>
+                                <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1"><Check className="w-3 h-3" /> Siap Dianalisis</span>
                             ) : (
                                 <span className="text-[10px] font-bold text-yellow-600 underline cursor-pointer" onClick={() => handleSimulate('semen')}>Simulasikan Foto Terunggah</span>
                             )}
                         </div>
 
-                        <button 
+                        <button
                             onClick={handleSubmit}
                             disabled={!previewUrl}
-                            className={`w-full py-3.5 rounded-full font-black text-sm flex items-center justify-center gap-2 transition-all duration-300 ${
-                                previewUrl 
-                                ? 'bg-[#FFCC00] hover:bg-yellow-400 text-gray-900 shadow-md hover:-translate-y-0.5' 
+                            className={`w-full py-3.5 rounded-full font-black text-sm flex items-center justify-center gap-2 transition-all duration-300 ${previewUrl
+                                ? 'bg-[#FFCC00] hover:bg-yellow-400 text-gray-900 shadow-md hover:-translate-y-0.5'
                                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            }`}
+                                }`}
                         >
                             Analisis dengan AI <ArrowRight className="w-4 h-4" />
                         </button>
@@ -387,7 +435,7 @@ export default function FotoMaterial({ onNextStep }) {
             </div>
 
             {/* Footer Stats */}
-            <div className="max-w-[1200px] mx-auto px-6 mt-12 mb-8">
+            <div className="relative z-10 max-w-[1200px] mx-auto px-6 mt-12 mb-8">
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
                     <div>
                         <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-700 uppercase tracking-wider mb-1">
@@ -395,9 +443,9 @@ export default function FotoMaterial({ onNextStep }) {
                         </div>
                         <p className="text-[10px] font-medium text-gray-500 leading-relaxed">Sirkulasi material surplus proyek dari seluruh donatur pekan ini.</p>
                     </div>
-                    
+
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-yellow-100 rounded-2xl flex items-center justify-center shrink-0"><Box className="w-6 h-6 text-yellow-700"/></div>
+                        <div className="w-12 h-12 bg-yellow-100 rounded-2xl flex items-center justify-center shrink-0"><Box className="w-6 h-6 text-yellow-700" /></div>
                         <div>
                             <h4 className="text-xl font-black text-gray-900 leading-tight">18.420 kg</h4>
                             <p className="text-[10px] font-semibold text-gray-500">Material Terselamatkan</p>
@@ -405,7 +453,7 @@ export default function FotoMaterial({ onNextStep }) {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center shrink-0"><Truck className="w-6 h-6 text-emerald-700"/></div>
+                        <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center shrink-0"><Truck className="w-6 h-6 text-emerald-700" /></div>
                         <div>
                             <h4 className="text-xl font-black text-gray-900 leading-tight">42 Rit Truk</h4>
                             <p className="text-[10px] font-semibold text-gray-500">Limbah Padat Teralihkan</p>
@@ -413,7 +461,7 @@ export default function FotoMaterial({ onNextStep }) {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center shrink-0"><Building2 className="w-6 h-6 text-red-600"/></div>
+                        <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center shrink-0"><Building2 className="w-6 h-6 text-red-600" /></div>
                         <div>
                             <h4 className="text-xl font-black text-gray-900 leading-tight">37 Fasilitas</h4>
                             <p className="text-[10px] font-semibold text-gray-500">Menerima Bantuan Material</p>
@@ -422,9 +470,10 @@ export default function FotoMaterial({ onNextStep }) {
                 </div>
             </div>
 
-            {/* Modal Kamera (Menggunakan stream getUserMedia) */}
+            {/* Modal Kamera */}
             {cameraOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+                    {/* ... (Kode modal kamera tidak ada perubahan) ... */}
                     <div className="w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl">
                         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
                             <div>
@@ -438,15 +487,14 @@ export default function FotoMaterial({ onNextStep }) {
 
                         <div className="relative aspect-video bg-black flex items-center justify-center">
                             <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
-                            
-                            {/* Overlay Frame AI (Sesuai Desain Mobile) */}
+
+                            {/* Overlay Frame AI */}
                             <div className="pointer-events-none absolute inset-6 rounded-3xl border-2 border-white/40">
                                 <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
                                     <div className="bg-gray-900/80 backdrop-blur text-white text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5">
                                         <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Mode Deteksi AI
                                     </div>
                                 </div>
-                                {/* Center Focus Ring */}
                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                                     <div className="w-24 h-24 rounded-full border-2 border-dashed border-[#FFCC00] animate-[spin_10s_linear_infinite] flex items-center justify-center">
                                         <div className="w-1.5 h-1.5 bg-[#FFCC00] rounded-full"></div>
@@ -477,7 +525,7 @@ export default function FotoMaterial({ onNextStep }) {
                     </div>
                 </div>
             )}
-            
+
             {/* Hidden Canvas untuk Capture Camera */}
             <canvas ref={canvasRef} className="hidden" />
         </div>

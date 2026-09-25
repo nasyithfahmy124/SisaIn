@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    Check, Cpu, Leaf, MapPin, AlertCircle, RotateCcw, 
+import {
+    Check, Cpu, Leaf, MapPin, AlertCircle, RotateCcw,
     ArrowRight, ShieldCheck, Zap
 } from 'lucide-react';
 
@@ -40,6 +40,28 @@ export default function AnalisisAIDesktop({ imagePayload, onBack, onNext }) {
             clearInterval(scanInterval);
         };
     }, [scanDirection]);
+    const analysisSteps = [
+        {
+            threshold: 25,
+            title: 'Mengenali jenis material',
+            description: 'Semen PCC Portland teridentifikasi secara akurat'
+        },
+        {
+            threshold: 50,
+            title: 'Memeriksa kondisi fisik',
+            description: 'Kemasan kering, tidak membeku / menggumpal'
+        },
+        {
+            threshold: 75,
+            title: 'Mengestimasi jumlah & tonase',
+            description: 'Menghitung 4 sak standar semen curah teratur'
+        },
+        {
+            threshold: 100,
+            title: 'Menganalisis potensi fasum terdekat',
+            description: 'Menunggu kalkulasi berat final'
+        }
+    ];
 
     const isComplete = progress === 100;
 
@@ -49,7 +71,7 @@ export default function AnalisisAIDesktop({ imagePayload, onBack, onNext }) {
             <div className="pt-8 pb-10">
                 <div className="max-w-[1200px] mx-auto px-6">
                     <p className="text-[11px] font-bold text-gray-500 mb-6">Beranda &gt; Tambah Material &gt; <span className="text-gray-900">Analisis AI</span></p>
-                    
+
                     {/* Stepper Tahap 2 */}
                     <div className="flex items-center justify-center gap-4">
                         <div className="flex items-center gap-2 bg-gray-100 text-gray-500 px-4 py-2 rounded-full border border-gray-200">
@@ -79,26 +101,26 @@ export default function AnalisisAIDesktop({ imagePayload, onBack, onNext }) {
 
             {/* Layout Utama */}
             <div className="max-w-[1200px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
+
                 {/* KOLOM KIRI (Visual AI & Quick Facts) */}
                 <div className="lg:col-span-7 space-y-6">
                     {/* Frame Foto AI */}
                     <div className="bg-white rounded-[24px] p-3 shadow-sm border border-gray-100">
                         <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-gray-900">
-                            <img 
-                                src={imagePayload?.url || "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=800"} 
-                                alt="Material dianalisis" 
+                            <img
+                                src={imagePayload?.url || "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=800"}
+                                alt="Material dianalisis"
                                 className={`w-full h-full object-cover transition-all duration-700 ${isComplete ? 'scale-100' : 'scale-105'}`}
                             />
-                            
+
                             {/* Garis Scanner AI (Hanya muncul saat loading) */}
                             {!isComplete && (
-                                <div 
+                                <div
                                     className="absolute left-0 right-0 h-16 bg-gradient-to-b from-transparent to-[#FFCC00]/40 border-b-2 border-[#FFCC00] z-10 pointer-events-none"
                                     style={{ top: `${scanPosition}%`, transition: 'top 0.1s linear' }}
                                 ></div>
                             )}
-                            
+
                             {/* Frame Corners Kuning */}
                             <div className="absolute top-4 left-4 w-8 h-8 border-t-4 border-l-4 border-[#FFCC00] rounded-tl-lg pointer-events-none"></div>
                             <div className="absolute top-4 right-4 w-8 h-8 border-t-4 border-r-4 border-[#FFCC00] rounded-tr-lg pointer-events-none"></div>
@@ -111,7 +133,7 @@ export default function AnalisisAIDesktop({ imagePayload, onBack, onNext }) {
                                     <Check className="w-3.5 h-3.5 text-emerald-600" /> Material: Semen Portland Komposit (PCC)
                                 </div>
                             </div>
-                            
+
                             <div className={`absolute top-20 right-8 transition-opacity duration-500 ${progress > 50 ? 'opacity-100' : 'opacity-0'}`}>
                                 <div className="bg-white/95 backdrop-blur text-gray-900 text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg border border-gray-100">
                                     <Check className="w-3.5 h-3.5 text-emerald-600" /> Kondisi: Kemasan utuh & kering (95%)
@@ -164,69 +186,98 @@ export default function AnalisisAIDesktop({ imagePayload, onBack, onNext }) {
 
                 {/* KOLOM KANAN (Proses & Hasil) */}
                 <div className="lg:col-span-5 space-y-5">
-                    
+
                     {/* Status Box */}
-                    <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="bg-[#FFFAEB] text-yellow-700 text-[9px] font-black px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-yellow-200">
-                                <Cpu className="w-3.5 h-3.5" /> COMPUTER VISION AKTIF
+                    <div className="rounded-[22px] border border-[#E7E3DD] bg-white p-5 shadow-[0_5px_18px_rgba(30,25,15,0.05)]">
+                        <div className="mb-4 flex items-center justify-between">
+                            <div className="inline-flex items-center gap-1.5 rounded-full border border-[#F0DF99] bg-[#FFF8D8] px-3 py-1.5 text-[8px] font-black text-[#6E5D00]">
+                                <Cpu className="h-3.5 w-3.5" />
+                                COMPUTER VISION AKTIF
                             </div>
-                            {!isComplete && <span className="text-[9px] font-bold text-gray-400 animate-pulse">Estimasi ~2 detik lagi</span>}
+
+                            {!isComplete && (
+                                <span className="animate-pulse text-[8px] font-bold text-[#8E8980]">
+                                    Estimasi ~2 Detik Lagi
+                                </span>
+                            )}
                         </div>
 
-                        <h2 className="text-[22px] font-black text-gray-900 leading-tight mb-2">
-                            {isComplete ? "Analisis AI Selesai!" : "AI Sisain sedang menganalisis foto materialmu..."}
-                        </h2>
-                        <p className="text-[11px] text-gray-500 font-medium leading-relaxed mb-6">
-                            Sistem computer vision kami mengidentifikasi spesifikasi sisa konstruksi untuk mencocokkannya ke proyek perbaikan fasilitas warga terdekat.
-                        </p>
+                        <div className="mb-5">
+                            <h2 className="max-w-[390px] text-[22px] font-black leading-[1.12] tracking-[-0.6px] text-[#25231F]">
+                                {isComplete ? 'Analisis AI Selesai!' : 'AI Sisain sedang menganalisis foto materialmu...'}
+                            </h2>
 
-                        <div className="mb-6">
-                            <div className="flex justify-between text-[9px] font-black mb-1.5">
-                                <span className="text-gray-500">Pemindaian visual awal</span>
-                                <span className="text-gray-900">{progress}% Selesai</span>
+                            <p className="mt-2 max-w-[430px] text-[10px] font-medium leading-[1.65] text-[#777269]">
+                                Sistem computer vision kami mengidentifikasi spesifikasi sisa konstruksi untuk mencocokkannya ke proyek perbaikan fasilitas warga terdekat.
+                            </p>
+                        </div>
+
+                        <div className="mb-5">
+                            <div className="mb-1.5 flex items-center justify-between text-[8px] font-black">
+                                <span className="text-[#7E796F]">Pemindaian visual awal</span>
+                                <span className="text-[#27241F]">{progress}% Selesai</span>
                             </div>
-                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                                <div className="bg-[#FFCC00] h-1.5 rounded-full transition-all duration-75" style={{ width: `${progress}%` }}></div>
+
+                            <div className="h-3 overflow-hidden rounded-full bg-[#ECEAE7] p-[2px]">
+                                <div
+                                    className="h-full rounded-full bg-[#FFCC00] transition-[width] duration-300 ease-out"
+                                    style={{ width: `${progress}%` }}
+                                />
                             </div>
                         </div>
 
-                        {/* Checklist Proses */}
-                        <div className="space-y-3">
-                            <div className={`p-3 rounded-xl flex gap-3 transition-colors ${progress > 25 ? 'bg-emerald-50/50' : 'bg-gray-50'}`}>
-                                {progress > 25 ? <Check className="w-5 h-5 text-emerald-600 shrink-0" /> : <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0"></div>}
-                                <div>
-                                    <h4 className={`text-[11px] font-black mb-0.5 ${progress > 25 ? 'text-emerald-800' : 'text-gray-400'}`}>Mengenali jenis material</h4>
-                                    <p className={`text-[9px] ${progress > 25 ? 'text-emerald-600' : 'text-gray-400'}`}>Semen PCC Portland teridentifikasi secara akurat</p>
-                                </div>
-                            </div>
+                        <div className="space-y-2">
+                            {analysisSteps.map((step, index) => {
+                                const isCompleted = progress >= step.threshold;
+                                const previousThreshold = analysisSteps[index - 1]?.threshold ?? 0;
+                                const isActive = progress >= previousThreshold && progress < step.threshold;
 
-                            <div className={`p-3 rounded-xl flex gap-3 transition-colors ${progress > 50 ? 'bg-emerald-50/50' : 'bg-gray-50'}`}>
-                                {progress > 50 ? <Check className="w-5 h-5 text-emerald-600 shrink-0" /> : <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0"></div>}
-                                <div>
-                                    <h4 className={`text-[11px] font-black mb-0.5 ${progress > 50 ? 'text-emerald-800' : 'text-gray-400'}`}>Memeriksa kondisi fisik</h4>
-                                    <p className={`text-[9px] ${progress > 50 ? 'text-emerald-600' : 'text-gray-400'}`}>Kemasan kering, tidak membeku/menggumpal</p>
-                                </div>
-                            </div>
+                                return (
+                                    <div
+                                        key={step.title}
+                                        className={`flex gap-2.5 rounded-[13px] border px-2.5 py-2.5 transition-all duration-500 ease-out ${isCompleted
+                                                ? 'border-transparent bg-[#F3F3F1]'
+                                                : isActive
+                                                    ? 'border-[#FFCF27] bg-[#FFF8D8] shadow-[0_3px_10px_rgba(255,204,0,0.12)]'
+                                                    : 'border-transparent bg-[#FAFAF9]'
+                                            }`}
+                                    >
+                                        <div className="flex shrink-0 items-start pt-0.5">
+                                            {isCompleted ? (
+                                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#008463] text-white transition-all duration-500">
+                                                    <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                                                </div>
+                                            ) : isActive ? (
+                                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FFCC00] shadow-[0_0_0_4px_rgba(255,204,0,0.12)] transition-all duration-500">
+                                                    <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#27241F]" />
+                                                </div>
+                                            ) : (
+                                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#F0EFEC] text-[8px] font-black text-[#B1ADA5]">
+                                                    {index + 1}
+                                                </div>
+                                            )}
+                                        </div>
 
-                            <div className={`p-3 rounded-xl flex gap-3 transition-colors ${progress > 75 && !isComplete ? 'bg-[#FFFAEB] border border-yellow-100' : progress === 100 ? 'bg-emerald-50/50' : 'bg-gray-50'}`}>
-                                {isComplete ? <Check className="w-5 h-5 text-emerald-600 shrink-0" /> : progress > 75 ? <div className="w-5 h-5 bg-[#FFCC00] rounded-full flex items-center justify-center shrink-0"><div className="w-1.5 h-1.5 bg-gray-900 rounded-full"></div></div> : <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0"></div>}
-                                <div>
-                                    <h4 className={`text-[11px] font-black mb-0.5 ${isComplete ? 'text-emerald-800' : progress > 75 ? 'text-gray-900' : 'text-gray-400'}`}>Mengestimasi jumlah & tonase</h4>
-                                    <p className={`text-[9px] ${isComplete ? 'text-emerald-600' : progress > 75 ? 'text-gray-600' : 'text-gray-400'}`}>Menghitung 4 sak standar semen curah teratur</p>
-                                </div>
-                            </div>
+                                        <div className="min-w-0 flex-1">
+                                            <h4 className={`text-[10px] font-black leading-tight transition-colors duration-500 ${isCompleted || isActive ? 'text-[#302E29]' : 'text-[#A8A49C]'
+                                                }`}>
+                                                {step.title}
+                                            </h4>
 
-                            <div className={`p-3 rounded-xl flex gap-3 transition-colors ${isComplete ? 'bg-emerald-50/50' : 'bg-gray-50'}`}>
-                                {isComplete ? <Check className="w-5 h-5 text-emerald-600 shrink-0" /> : <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0 text-[9px] flex items-center justify-center text-gray-400">4</div>}
-                                <div>
-                                    <h4 className={`text-[11px] font-black mb-0.5 ${isComplete ? 'text-emerald-800' : 'text-gray-400'}`}>Menganalisis potensi fasum terdekat</h4>
-                                    <p className={`text-[9px] ${isComplete ? 'text-emerald-600' : 'text-gray-400'}`}>{isComplete ? '2 fasum ditemukan dalam radius 3 km' : 'Menunggu kurasi validasi final'}</p>
-                                </div>
-                            </div>
+                                            <p className={`mt-0.5 text-[8.5px] font-medium leading-[1.45] transition-colors duration-500 ${isCompleted
+                                                    ? 'text-[#008463]'
+                                                    : isActive
+                                                        ? 'text-[#806F1A]'
+                                                        : 'text-[#ACA79F]'
+                                                }`}>
+                                                {isComplete && index === 3 ? '2 fasum ditemukan dalam radius 3 km' : step.description}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
-
                     {/* Preview Deteksi (Muncul setelah selesai/isComplete) */}
                     <div className={`bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 transition-all duration-500 ${isComplete ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                         <div className="flex justify-between items-center mb-5">
@@ -282,13 +333,13 @@ export default function AnalisisAIDesktop({ imagePayload, onBack, onNext }) {
                         </div>
 
                         <div className="flex gap-3">
-                            <button 
+                            <button
                                 onClick={onBack}
                                 className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-3.5 rounded-full flex items-center justify-center gap-2 transition-colors border border-gray-200"
                             >
                                 <RotateCcw className="w-4 h-4" /> Unggah Foto Ulang
                             </button>
-                            <button 
+                            <button
                                 onClick={() => onNext({ category: 'Semen & Perekat', weight: 160 })}
                                 className="flex-[1.5] bg-[#FFCC00] hover:bg-yellow-400 text-gray-900 text-xs font-black py-3.5 rounded-full flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-md"
                             >

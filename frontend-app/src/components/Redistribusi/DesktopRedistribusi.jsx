@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { 
-    Plus, Clock, ArrowRight, ShieldCheck, Truck, Lock, 
-    CheckCircle2, ChevronRight, Camera, BarChart2, 
+import {
+    Plus, Clock, ArrowRight, ShieldCheck, Truck, Lock,
+    CheckCircle2, ChevronRight, Camera, BarChart2,
     Building2, Coins, MapPin, Calendar, Recycle, Droplet
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -14,38 +14,66 @@ export default function RedistribusiDesktop() {
     return (
         <div className="max-w-[1500px] mx-auto py-8 px-8 bg-[#FAF9F7] min-h-screen">
             <div className="grid grid-cols-12 gap-8">
-                
+
                 {/* KOLOM KIRI (7/12) */}
                 <div className="col-span-12 lg:col-span-7 xl:col-span-8 space-y-8">
-                    
+
                     {/* Hero Banner */}
-                    <div className="bg-gradient-to-r from-[#FFFAEB] to-[#FFF0B3] rounded-3xl p-8 relative overflow-hidden border border-yellow-100">
-                        <div className="inline-flex items-center gap-2 bg-yellow-400/20 text-yellow-900 text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider mb-4">
-                            <Recycle className="w-3.5 h-3.5" /> Sirkulasi Material Surplus
+                    <div
+                        className="relative overflow-hidden rounded-[18px] bg-[#FFFDF8] px-8 py-7 shadow-[0_8px_22px_rgba(0,0,0,0.14)]"
+                        style={{
+                            backgroundImage: `radial-gradient(circle at 88% 8%, rgba(255,221,91,0.48) 0%, rgba(255,221,91,0.24) 21%, rgba(255,221,91,0) 28%), radial-gradient(circle at 58% 82%, rgba(191,239,214,0.42) 0%, rgba(191,239,214,0.20) 20%, rgba(191,239,214,0) 46%)`
+                        }}
+                    >
+                        <div className="relative z-10 mb-5 inline-flex items-center gap-1.5 rounded-full bg-[#FFDC68] px-3.5 py-[5px] text-[10px] font-extrabold uppercase tracking-[0.03em] text-[#171717]">
+                            <Recycle className="h-[13px] w-[13px] stroke-[2.5]" />
+                            <span>Sirkulasi Material Surplus</span>
                         </div>
-                        <h1 className="text-3xl xl:text-4xl font-black text-gray-900 leading-tight mb-4 max-w-lg">
-                            Material sisa proyekmu bisa <span className="text-yellow-700 underline decoration-yellow-400 decoration-4 underline-offset-4">berguna kembali</span>.
+
+                        <h1 className="relative z-10 mb-3 max-w-[750px] text-[30px] font-extrabold leading-[1.15] tracking-[-0.8px] text-[#202020] xl:text-[32px]">
+                            Material sisa proyekmu bisa{" "}berguna kembali.
                         </h1>
-                        <p className="text-sm font-medium text-gray-700 mb-8 max-w-lg leading-relaxed">
+
+                        <p className="relative z-10 mb-5 max-w-[700px] text-[14px] font-medium leading-[1.65] tracking-[-0.05px] text-[#625D51]">
                             Sisain menganalisis sisa material konstruksi Anda secara otomatis dan menghubungkannya langsung dengan kebutuhan fasilitas umum atau perbaikan infrastruktur warga yang terverifikasi.
                         </p>
-                        
-                        <div className="flex items-center gap-4 mb-8">
-                            <Link to="/redistribusi/material/new" className="bg-[#FFCC00] hover:bg-yellow-400 text-gray-900 text-sm font-bold px-6 py-3 rounded-full flex items-center gap-2 shadow-sm transition-transform hover:-translate-y-0.5">
-                                <Plus className="w-4 h-4" /> Tambah Material <ArrowRight className="w-4 h-4 ml-1" />
+
+                        <div className="relative z-10 mb-6 flex flex-wrap items-center gap-3">
+                            <Link to="/redistribusi/material/new" className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#FFCC00] px-7 py-[12px] text-[14px] font-extrabold text-[#171717] shadow-[0_5px_12px_rgba(255,204,0,0.18)] transition-all duration-200 hover:-translate-y-[1px] hover:bg-[#FFD21A] active:translate-y-0">
+                                <Plus className="h-[17px] w-[17px] stroke-[2.5]" />
+                                <span>Tambah Material</span>
+                                <ArrowRight className="h-[17px] w-[17px] stroke-[2.5] transition-transform duration-200 group-hover:translate-x-1" />
                             </Link>
-                            <button className="bg-white/60 hover:bg-white text-gray-800 text-sm font-bold px-6 py-3 rounded-full flex items-center gap-2 transition-colors border border-yellow-200/50">
-                                <Clock className="w-4 h-4" /> Lihat Aktivitas
+
+                            <button type="button" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#E7E4DB] bg-[#F7F7F5]/90 px-6 py-[12px] text-[14px] font-bold text-[#292929] transition-all duration-200 hover:bg-white hover:shadow-sm">
+                                <span className="flex h-[17px] w-[17px] items-center justify-center rounded-full border-[2px] border-dotted border-[#008F69]">
+                                    <span className="h-[3px] w-[3px] rounded-full bg-[#008F69]" />
+                                </span>
+                                <span>Lihat Aktivitas</span>
                             </button>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-6 text-[11px] font-bold text-emerald-800">
-                            <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-600"/> Terkurasi AI 99.4%</span>
-                            <span className="flex items-center gap-1.5"><Truck className="w-4 h-4 text-emerald-600"/> Penjemputan Armada Gratis</span>
-                            <span className="flex items-center gap-1.5"><Lock className="w-4 h-4 text-emerald-600"/> 100% Transparan</span>
+                        <div className="relative z-10 flex flex-wrap items-center gap-x-5 gap-y-2 text-[10px] font-bold text-[#28261F]">
+                            <span className="inline-flex items-center gap-1.5">
+                                <ShieldCheck className="h-[17px] w-[17px] stroke-[2.5] text-[#007B59]" />
+                                <span>Terkurasi AI 99.4%</span>
+                            </span>
+
+                            <span className="h-1 w-1 rounded-full bg-[#CFC7B4]" />
+
+                            <span className="inline-flex items-center gap-1.5">
+                                <Truck className="h-[17px] w-[17px] stroke-[2] text-[#806B00]" />
+                                <span>Penjemputan Armada Gratis</span>
+                            </span>
+
+                            <span className="h-1 w-1 rounded-full bg-[#CFC7B4]" />
+
+                            <span className="inline-flex items-center gap-1.5">
+                                <Lock className="h-[16px] w-[16px] stroke-[2] text-[#007B59]" />
+                                <span>100% Transparan</span>
+                            </span>
                         </div>
                     </div>
-
                     {/* Material Saya Section */}
                     <div>
                         <div className="flex items-center justify-between mb-6">
@@ -55,7 +83,7 @@ export default function RedistribusiDesktop() {
                             </div>
                             <div className="flex bg-gray-100 p-1 rounded-full border border-gray-200">
                                 {['Semua', 'Siap Jemput', 'Dikurasi'].map((tab) => (
-                                    <button 
+                                    <button
                                         key={tab} onClick={() => setActiveTab(tab)}
                                         className={`px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${activeTab === tab ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
                                     >
@@ -85,7 +113,7 @@ export default function RedistribusiDesktop() {
                                             <p className="text-[11px] font-bold text-emerald-700 flex items-center gap-1.5 mb-4">
                                                 <ArrowRight className="w-3.5 h-3.5" /> {mat.matchText}
                                             </p>
-                                            
+
                                             <div className="mb-3">
                                                 <div className="flex justify-between text-[10px] font-bold mb-1.5">
                                                     <span className="text-gray-600">{mat.progressText}</span>
@@ -95,7 +123,7 @@ export default function RedistribusiDesktop() {
                                                     <div className="bg-emerald-600 h-1.5 rounded-full" style={{ width: `${mat.progressValue}%` }}></div>
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="flex justify-between items-center mt-4">
                                                 <span className="text-[11px] font-semibold text-gray-500 flex items-center gap-1.5">
                                                     <Clock className="w-3.5 h-3.5" /> {mat.schedule}
@@ -112,7 +140,7 @@ export default function RedistribusiDesktop() {
                                         <img src={mat.image} alt={mat.title} className="w-16 h-16 rounded-xl object-cover" />
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
-                                                {mat.aiVerified && <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5"><ShieldCheck className="w-3 h-3"/> Terverifikasi AI</span>}
+                                                {mat.aiVerified && <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5"><ShieldCheck className="w-3 h-3" /> Terverifikasi AI</span>}
                                                 {mat.kurasiTag && <span className="bg-yellow-100 text-yellow-800 text-[9px] font-bold px-1.5 py-0.5 rounded">{mat.kurasiTag}</span>}
                                                 <span className="text-[10px] font-semibold text-gray-400">{mat.category}</span>
                                             </div>
@@ -153,7 +181,7 @@ export default function RedistribusiDesktop() {
 
                 {/* KOLOM KANAN (5/12) */}
                 <div className="col-span-12 lg:col-span-5 xl:col-span-4 space-y-6">
-                    
+
                     {/* Impact Card */}
                     <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100">
                         <div className="flex justify-between items-center mb-6">
@@ -228,7 +256,7 @@ export default function RedistribusiDesktop() {
                                             <p className="text-[10px] font-medium text-gray-600 leading-relaxed mb-4">
                                                 {proj.desc}
                                             </p>
-                                            
+
                                             <div className="mb-4">
                                                 <div className="flex justify-between text-[9px] font-black mb-1.5">
                                                     <span className="text-gray-500">Material Terkumpul</span>

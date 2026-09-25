@@ -4,11 +4,13 @@ import FotoMaterialMobile from '../../components/TambahMaterial/FotoMaterialMobi
 import AnalisisAIDesktop from '../../components/TambahMaterial/AnalisisAIDesktop';
 import AnalisisAIMobile from '../../components/TambahMaterial/AnalisisAIMobile';
 import KonfirmasiDesktop from '../../components/TambahMaterial/KonfirmasiDesktop';
+import DistribusiDesktop from '../../components/TambahMaterial/DistribusiDesktop'; 
 
 export default function ProsesTambahMaterial() {
     const [step, setStep] = useState(1);
     const [imagePayload, setImagePayload] = useState(null);
     const [hasilAI, setHasilAI] = useState(null);
+    const [finalData, setFinalData] = useState(null); // Menyimpan data final terkonfirmasi
     const [isAILoading, setIsAILoading] = useState(false);
 
     const handleKirimKeAI = async (payload) => {
@@ -19,7 +21,7 @@ export default function ProsesTambahMaterial() {
         if (payload.isSimulated || !payload.file) {
             setTimeout(() => {
                 setHasilAI({ 
-                    category: 'Semen Portland Composite (PCC 40kg)', 
+                    category: 'Semen Portland Composite (PCC)', 
                     weight: 160,
                     quantity: 4,
                     condition: 'Grade A',
@@ -33,21 +35,13 @@ export default function ProsesTambahMaterial() {
         try {
             const formData = new FormData();
             formData.append('image', payload.file);
-
-            const response = await fetch('http://localhost:8000/api/ai/analyze/', {
-                method: 'POST',
-                body: formData
-            });
-
+            const response = await fetch('http://localhost:8000/api/ai/analyze/', { method: 'POST', body: formData });
             if (!response.ok) throw new Error(`HTTP error ${response.status}`);
             const data = await response.json();
             setHasilAI(data);
         } catch (error) {
             console.error('Gagal diproses AI:', error);
-            setHasilAI({ 
-                category: 'Semen Portland Composite (PCC)', 
-                weight: 160, quantity: 4, condition: 'Grade A' 
-            });
+            setHasilAI({ category: 'Semen Portland Composite (PCC)', weight: 160, quantity: 4, condition: 'Grade A' });
         } finally {
             setIsAILoading(false);
         }
@@ -57,15 +51,20 @@ export default function ProsesTambahMaterial() {
         setStep(targetStep);
     };
 
-    const handleLanjutKonfirmasi = (finalData) => {
-        setHasilAI(finalData);
+    const handleLanjutKonfirmasi = (dataAI) => {
+        setHasilAI(dataAI);
         setStep(3);
     };
 
-    const handleSubmitFinal = async (finalVerifiedData) => {
-        console.log("Data siap dikirim ke Backend (Distribusi):", finalVerifiedData);
-        // TODO: Hit API final submission di sini (POST ke endpoint material)
+    const handleLanjutDistribusi = (verifiedData) => {
+        setFinalData(verifiedData);
         setStep(4);
+    };
+
+    const handleSelesaiPencarian = (jalurDistribusi) => {
+        console.log("Mulai pencarian via jalur:", jalurDistribusi, "dengan data:", finalData);
+        // TODO: Arahkan ke halaman loading pencarian fasum/warga atau submit ke backend
+        alert(`Mencari target via jalur: ${jalurDistribusi}`);
     };
 
     return (
@@ -73,43 +72,24 @@ export default function ProsesTambahMaterial() {
             {/* TAMPILAN DESKTOP */}
             <div className="hidden lg:block">
                 {step === 1 && <FotoMaterialDesktop onNextStep={handleKirimKeAI} />}
-                {step === 2 && (
-                    <AnalisisAIDesktop 
-                        imagePayload={imagePayload} 
-                        onBack={() => handleKembali(1)}
-                        onNext={handleLanjutKonfirmasi}
-                    />
-                )}
-                {step === 3 && (
-                    <KonfirmasiDesktop 
-                        imagePayload={imagePayload}
-                        aiData={hasilAI}
-                        onBack={() => handleKembali(2)}
-                        onNext={handleSubmitFinal}
-                    />
-                )}
+                {step === 2 && <AnalisisAIDesktop imagePayload={imagePayload} onBack={() => handleKembali(1)} onNext={handleLanjutKonfirmasi} />}
+                {step === 3 && <KonfirmasiDesktop imagePayload={imagePayload} aiData={hasilAI} onBack={() => handleKembali(2)} onNext={handleLanjutDistribusi} />}
                 {step === 4 && (
-                    <div className="min-h-screen flex items-center justify-center font-bold text-xl">
-                        Halaman 04 Distribusi (Segera Hadir)
-                    </div>
+                    <DistribusiDesktop 
+                        imagePayload={imagePayload} 
+                        finalData={finalData} 
+                        onBack={() => handleKembali(3)} 
+                        onNext={handleSelesaiPencarian} 
+                    />
                 )}
             </div>
 
-            {/* TAMPILAN MOBILE (Placeholder sementara) */}
+            {/* TAMPILAN MOBILE (Placeholder) */}
             <div className="block lg:hidden">
                 {step === 1 && <FotoMaterialMobile onNextStep={handleKirimKeAI} />}
-                {step === 2 && (
-                    <AnalisisAIMobile 
-                        imagePayload={imagePayload} 
-                        onBack={() => handleKembali(1)}
-                        onNext={handleLanjutKonfirmasi}
-                    />
-                )}
-                {step === 3 && (
-                    <div className="min-h-screen flex items-center justify-center font-bold text-lg px-4 text-center">
-                        Halaman Konfirmasi Mobile (Segera Hadir)
-                    </div>
-                )}
+                {step === 2 && <AnalisisAIMobile imagePayload={imagePayload} onBack={() => handleKembali(1)} onNext={handleLanjutKonfirmasi} />}
+                {step === 3 && <div className="p-10 text-center font-bold">Mobile Step 3 (Segera)</div>}
+                {step === 4 && <div className="p-10 text-center font-bold">Mobile Step 4 (Segera)</div>}
             </div>
         </div>
     );
