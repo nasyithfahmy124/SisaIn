@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'ai',
     'account',
     'shop',
-    'penerima'
+    'penerima',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -108,8 +109,15 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema'
 }
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'API SisaIn',
+    'DESCRIPTION': 'Dokumentasi Backend Menggunakan Django REST Framework & OpenAPI 3',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
