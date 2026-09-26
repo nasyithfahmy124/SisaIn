@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from .serializers import RegisterSeri,ProfileSeri,UpdateProfileSeri,RiwayatDonasiSeri,RiwayatKlaimBarang
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
-from rest_framework import status
+from rest_framework import status,generics
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
@@ -89,19 +89,14 @@ class ProfileView(APIView):
         serializer = ProfileSeri(akun,context={'request':request})
         return Response(serializer.data,status=status.HTTP_200_OK)
     
-    
-class UpdateProfileView(APIView):
+class UpdateProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = UpdateProfileSeri
     permission_classes = [IsAuthenticated]
-    def put(self,request):
-        akun = get_object_or_404(AkunProfile,user=request.user)
-        serializer = UpdateProfileSeri(akun,
-                                    data=request.data,
-                                    partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data,status=status.HTTP_200_OK)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
-    
+
+    def get_object(self):
+        akun, created = AkunProfile.objects.get_or_create(user=self.request.user)
+        return akun
+
 class ProfileRiwayatDonasi(APIView):
     permission_classes = [IsAuthenticated]
     def get(self,request):

@@ -15,13 +15,9 @@ class SupabaseStorage(Storage):
         self.supabase: Client = create_client(self.base_url, self.key)
 
     def _save(self, name, content):
-        # Bersihkan path dari backslash Windows
+    
         clean_name = name.replace('\\', '/')
-        
-        # Baca file ke memory bytes (tidak disimpan ke hard disk lokal)
         file_data = content.read()
-        
-        # Tentukan Content-Type
         content_type = "image/jpeg"
         lower_name = clean_name.lower()
         if lower_name.endswith('.png'):
@@ -36,7 +32,6 @@ class SupabaseStorage(Storage):
         print(f"[SupabaseStorage] Mengunggah {clean_name} ke bucket '{self.bucket_name}'...")
         
         try:
-            # Upload langsung ke Supabase Storage API
             res = self.supabase.storage.from_(self.bucket_name).upload(
                 path=clean_name,
                 file=file_data,
@@ -46,7 +41,6 @@ class SupabaseStorage(Storage):
                     "content-type": content_type 
                 }
             )
-            # Validasi jika supabase-py mengembalikan error di dalam respons
             if isinstance(res, dict) and res.get("error"):
                 raise Exception(res.get("error"))
                 
@@ -57,8 +51,6 @@ class SupabaseStorage(Storage):
         return clean_name
 
     def _open(self, name, mode='rb'):
-        # Karena di production (Vercel) server bersifat read-only, 
-        # file dibaca langsung via URL publik Supabase jika dibutuhkan.
         pass
 
     def url(self, name):
@@ -66,7 +58,6 @@ class SupabaseStorage(Storage):
         return f"{self.base_url}/storage/v1/object/public/{self.bucket_name}/{clean_name}"
 
     def exists(self, name):
-        # Selalu return False agar Django menyerahkan proses penyimpanan murni ke method _save di atas
         return False
 
     def get_available_name(self, name, max_length=None):
