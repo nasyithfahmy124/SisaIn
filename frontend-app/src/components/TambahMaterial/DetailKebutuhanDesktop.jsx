@@ -1,307 +1,1016 @@
-import React from 'react';
-import Map, { Marker, Source, Layer } from 'react-map-gl/maplibre';
+import React, { useEffect, useMemo, useRef } from 'react';
+import Map, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { 
-    ArrowLeft, CheckCircle2, MapPin, Camera, 
-    Wrench, Check, ShieldCheck, ArrowRight, 
-    Leaf, Truck, Lock, Map as MapIcon, Clock, Shield
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, Clock3, Leaf, Lock, Map as MapIcon, MapPin, Shield, ShieldCheck, Truck, Wrench } from 'lucide-react';
 
-export default function DetailKebutuhanDesktop({ projectData, materialData, onBack, onNext }) {
-    // Dummy Data Fallback (jika data dari props belum ada)
-    const project = projectData || {
-        title: "Perbaikan Jalan Gang RT 03",
-        location: "Kelurahan Candisari, Semarang Selatan, Kota Semarang",
-        distance: "0.7 km",
-        neededKg: 120,
-        neededSak: 3,
-        coordinates: [110.427, -7.021]
-    };
+const DEFAULT_ORIGIN = { latitude: -7.025, longitude: 110.422 };
 
-    const material = materialData || {
-        availableKg: 160,
-        availableSak: 4,
-        type: "Semen PCC",
-        originCoords: [110.422, -7.025]
-    };
-
-    // GeoJSON untuk menggambar garis rute di Map
-    const routeGeoJSON = {
-        type: 'Feature',
-        properties: {},
-        geometry: {
-            type: 'LineString',
-            coordinates: [
-                material.originCoords,
-                project.coordinates
-            ]
+const OSM_STYLE = {
+    version: 8,
+    sources: {
+        osm: {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '© OpenStreetMap contributors'
         }
-    };
+    },
+    layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
+};
+
+const parseNumber = (value) => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (typeof value !== 'string') return null;
+
+    const normalized = value.replace(',', '.').replace(/[^\d.-]/g, '');
+    const number = Number(normalized);
+
+    return Number.isFinite(number) ? number : null;
+};
+
+const firstValue = (...values) => values.find((value) => value !== undefined && value !== null && value !== '');
+
+const unwrapProjectData = (data) => {
+    if (!data) return {};
+    return data?.selected_project ?? data?.selectedProject ?? data?.project ?? data?.kebutuhan ?? data?.data ?? data;
+};
+
+const getCoordinates = (data, fallback = DEFAULT_ORIGIN) => {
+    const record = unwrapProjectData(data);
+
+    const latitude = parseNumber(firstValue(
+        record?.latitude,
+        record?.lat,
+        record?.koordinat?.latitude,
+        record?.koordinat?.lat,
+        record?.location?.latitude,
+        record?.location?.lat,
+        record?.lokasi?.latitude,
+        record?.lokasi?.lat
+    ));
+
+    const longitude = parseNumber(firstValue(
+        record?.longitude,
+        record?.lng,
+        record?.lon,
+        record?.koordinat?.longitude,
+        record?.koordinat?.lng,
+        record?.location?.longitude,
+        record?.location?.lng,
+        record?.lokasi?.longitude,
+        record?.lokasi?.lng
+    ));
+
+    if (latitude !== null && longitude !== null) {
+        return { latitude, longitude };
+    }
+
+    const coordinates = record?.coordinates ?? record?.koordinat?.coordinates ?? record?.location?.coordinates;
+
+    if (Array.isArray(coordinates) && coordinates.length >= 2) {
+        const [longitudeValue, latitudeValue] = coordinates;
+        const latitudeFromArray = parseNumber(latitudeValue);
+        const longitudeFromArray = parseNumber(longitudeValue);
+
+        if (latitudeFromArray !== null && longitudeFromArray !== null) {
+            return {
+                latitude: latitudeFromArray,
+                longitude: longitudeFromArray
+            };
+        }
+    }
+
+    return fallback;
+};
+
+const hasCoordinates = (data) => {
+    const record = unwrapProjectData(data);
+    const coordinate = getCoordinates(record, null);
+    return Boolean(coordinate);
+};
+
+const getProjectId = (data) => firstValue(
+    data?.id,
+    data?.project_id,
+    data?.projectId,
+    data?.kebutuhan_id,
+    data?.kebutuhanId
+);
+
+const getProjectName = (data) => firstValue(
+    data?.title,
+    data?.nama_proyek,
+    data?.nama_project,
+    data?.project_name,
+    data?.nama_kebutuhan,
+    data?.nama,
+    data?.name,
+    'Detail Kebutuhan Proyek'
+);
+
+const getProjectLocation = (data) => firstValue(
+    data?.location_name,
+    data?.lokasi_nama,
+    data?.location,
+    data?.lokasi,
+    data?.alamat,
+    data?.address,
+    'Lokasi belum tersedia'
+);
+
+const getProjectDistance = (data) => firstValue(
+    data?.distance_display,
+    data?.distance,
+    data?.jarak,
+    data?.distance_km,
+    data?.jarak_km
+);
+
+const getProjectCategory = (data) => firstValue(
+    data?.kategori,
+    data?.category,
+    data?.jenis_proyek,
+    data?.tipe_proyek,
+    data?.project_type,
+    'Proyek'
+);
+
+const getProjectDescription = (data) => firstValue(
+    data?.deskripsi,
+    data?.description,
+    data?.keterangan,
+    data?.detail,
+    data?.project_description,
+    data?.kebutuhan_deskripsi
+);
+
+const getProjectPurpose = (data) => firstValue(
+    data?.tujuan,
+    data?.penggunaan,
+    data?.tujuan_penggunaan,
+    data?.kebutuhan_detail,
+    data?.material_usage,
+    data?.target_penggunaan,
+    data?.kegunaan
+);
+
+const getProjectImage = (data) => firstValue(
+    data?.image_url,
+    data?.gambar_url,
+    data?.foto_url,
+    data?.photo_url,
+    data?.image,
+    data?.gambar,
+    data?.foto,
+    data?.photo,
+    data?.thumbnail
+);
+
+const getNeededMaterialName = (data) => firstValue(
+    data?.material_name,
+    data?.material,
+    data?.nama_material,
+    data?.namaMaterial,
+    data?.jenis_material,
+    data?.material_dibutuhkan,
+    data?.kebutuhan_material
+);
+
+const getNeededWeight = (data) => firstValue(
+    data?.neededKg,
+    data?.needed_kg,
+    data?.jumlah_kebutuhan_kg,
+    data?.kebutuhan_kg,
+    data?.required_weight,
+    data?.required_kg,
+    data?.bobot_kebutuhan,
+    data?.berat_kebutuhan,
+    data?.weight_needed
+);
+
+const getNeededQuantity = (data) => firstValue(
+    data?.neededQuantity,
+    data?.needed_quantity,
+    data?.jumlah_kebutuhan,
+    data?.quantity_needed,
+    data?.jumlah,
+    data?.quantity,
+    data?.volume
+);
+
+const getNeededUnit = (data) => firstValue(
+    data?.neededUnit,
+    data?.needed_unit,
+    data?.satuan_kebutuhan,
+    data?.satuan,
+    data?.unit
+);
+
+const getAvailableWeight = (data) => firstValue(
+    data?.bobot,
+    data?.berat,
+    data?.availableKg,
+    data?.available_kg,
+    data?.weight,
+    data?.berat_kg
+);
+
+const getAvailableQuantity = (data) => firstValue(
+    data?.jumlah,
+    data?.quantity,
+    data?.volume
+);
+
+const getAvailableUnit = (data) => firstValue(
+    data?.satuan,
+    data?.unit
+);
+
+const getMaterialType = (data) => firstValue(
+    data?.nama_material,
+    data?.namaMaterial,
+    data?.material_name,
+    data?.jenis,
+    data?.material,
+    'Material Bangunan'
+);
+
+const getMatchScore = (data) => {
+    const score = parseNumber(firstValue(
+        data?.match_percentage,
+        data?.match_percent,
+        data?.match_score,
+        data?.matchScore,
+        data?.match,
+        data?.confidence,
+        data?.score,
+        data?.similarity,
+        data?.persentase_match,
+        data?.skor_kecocokan
+    ));
+
+    if (score === null) return 0;
+
+    return Math.max(0, Math.min(100, score));
+};
+
+const getMatchReason = (data) => firstValue(
+    data?.match_reason,
+    data?.matchReason,
+    data?.alasan_match,
+    data?.reason,
+    data?.catatan_match,
+    data?.ai_reason,
+    data?.penjelasan_match
+);
+
+const getConditionLabel = (data) => firstValue(
+    data?.kondisi_barang,
+    data?.kondisi,
+    data?.kelayakan,
+    data?.condition,
+    'Belum ditentukan'
+);
+
+const getValidationStatus = (data) => firstValue(
+    data?.status_verifikasi,
+    data?.verification_status,
+    data?.verification,
+    data?.status_validasi,
+    data?.status
+);
+
+const getValidationOfficer = (data) => firstValue(
+    data?.verified_by,
+    data?.nama_verifikator,
+    data?.verifikator,
+    data?.koordinator,
+    data?.validator,
+    data?.verifiedBy
+);
+
+const getValidationNote = (data) => firstValue(
+    data?.validation_note,
+    data?.catatan_verifikasi,
+    data?.catatan_validasi,
+    data?.catatan
+);
+
+const getAccessNote = (data) => firstValue(
+    data?.akses,
+    data?.access_note,
+    data?.catatan_akses,
+    data?.access,
+    'Informasi akses belum tersedia dari API.'
+);
+
+const getEstimatedDuration = (data) => firstValue(
+    data?.estimated_duration,
+    data?.durasi,
+    data?.estimasi_waktu,
+    data?.eta,
+    data?.delivery_eta
+);
+
+const getOrganization = (data) => firstValue(
+    data?.nama_organisasi,
+    data?.organisasi,
+    data?.organization,
+    data?.pemohon,
+    data?.penanggung_jawab,
+    data?.pic,
+    data?.owner_name
+);
+
+const formatWeight = (value) => {
+    const number = parseNumber(value);
+    return number !== null ? `${number.toLocaleString('id-ID')} kg` : '-';
+};
+
+const formatQuantity = (quantity, unit = 'unit') => {
+    if (quantity === null || quantity === undefined || quantity === '') return '-';
+    return `${quantity} ${unit || 'unit'}`;
+};
+
+const formatDistance = (value) => {
+    if (value === null || value === undefined || value === '') return '-';
+    if (typeof value === 'string' && /km|meter|m\b/i.test(value)) return value;
+
+    const number = parseNumber(value);
+
+    return number !== null
+        ? `${number.toLocaleString('id-ID', { maximumFractionDigits: 1 })} km`
+        : String(value);
+};
+
+const formatDate = (value) => {
+    if (!value) return 'Belum tersedia';
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return String(value);
+
+    return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(date);
+};
+
+const getReferenceId = (project) => {
+    const id = getProjectId(project);
+
+    return id ? `MTC-${String(id).padStart(6, '0')}` : 'MTC-API';
+};
+
+const calculateSurplus = (available, needed) => {
+    const availableNumber = parseNumber(available);
+    const neededNumber = parseNumber(needed);
+
+    if (availableNumber === null || neededNumber === null) return null;
+
+    return availableNumber - neededNumber;
+};
+
+const getMatchLabel = (score) => {
+    if (score >= 90) return 'Kesesuaian Tinggi';
+    if (score >= 75) return 'Kesesuaian Baik';
+    if (score > 0) return 'Perlu Ditinjau';
+    return 'Belum Dinilai';
+};
+
+const InfoRow = ({ icon: Icon, label, children }) => (
+    <div className="flex items-start gap-2.5">
+        <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+        <p className="text-[10px] leading-relaxed text-gray-700">
+            <strong className="text-gray-900">{label}:</strong> {children}
+        </p>
+    </div>
+);
+
+const StatusBadge = ({ children, tone = 'green' }) => {
+    const classes = tone === 'red'
+        ? 'border-red-100 bg-red-50 text-red-600'
+        : tone === 'yellow'
+            ? 'border-yellow-100 bg-yellow-50 text-yellow-700'
+            : 'border-emerald-100 bg-emerald-50 text-emerald-700';
 
     return (
-        <div className="min-h-screen bg-[#FCF9F8] font-sans pb-24">
-            
-            {/* Top Navigation & Toast */}
-            <div className="bg-[#FCF9F8] border-b border-gray-100 py-4 px-8 flex justify-between items-center sticky top-0 z-40">
-                <button onClick={onBack} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
-                    <ArrowLeft className="w-4 h-4" />
-                    <span className="text-[11px] font-bold">Kembali ke Matching</span>
-                </button>
-                <div className="flex items-center gap-3">
-                    <div className="bg-gray-100 text-gray-500 text-[9px] font-black tracking-wider px-3 py-1.5 rounded-md flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> ID REFERENSI : MTC-2024-889X
-                    </div>
-                    <div className="bg-gray-800 text-white text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-2 shadow-md">
-                        <CheckCircle2 className="w-4 h-4 text-yellow-400" /> Pilihan berhasil diperbarui
+        <span className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[8px] font-bold ${classes}`}>
+            {children}
+        </span>
+    );
+};
+
+const SectionTitle = ({ icon: Icon, children, accent = 'yellow' }) => (
+    <h3 className="flex items-center gap-2 text-sm font-black text-gray-900">
+        <Icon className={`h-4 w-4 ${accent === 'green' ? 'text-emerald-600' : 'text-yellow-600'}`} />
+        {children}
+    </h3>
+);
+
+export default function DetailKebutuhanDesktop({ projectData, materialData, onBack, onNext }) {
+    const mapRef = useRef(null);
+
+    const project = useMemo(() => unwrapProjectData(projectData), [projectData]);
+    const material = useMemo(() => unwrapProjectData(materialData), [materialData]);
+
+    const projectCoordinate = useMemo(() => {
+        const coordinate = getCoordinates(project, null);
+        return coordinate;
+    }, [project]);
+
+    const origin = useMemo(() => {
+        return getCoordinates(material, projectCoordinate || DEFAULT_ORIGIN);
+    }, [material, projectCoordinate]);
+
+    const destination = useMemo(() => projectCoordinate, [projectCoordinate]);
+
+    const projectName = getProjectName(project);
+    const projectLocation = getProjectLocation(project);
+    const projectDistance = getProjectDistance(project);
+    const projectCategory = getProjectCategory(project);
+    const projectDescription = getProjectDescription(project);
+    const projectPurpose = getProjectPurpose(project);
+    const projectImage = getProjectImage(project);
+    const organization = getOrganization(project);
+
+    const materialType = getMaterialType(material);
+    const materialCondition = getConditionLabel(material);
+    const availableWeight = getAvailableWeight(material);
+    const availableQuantity = getAvailableQuantity(material);
+    const availableUnit = getAvailableUnit(material);
+
+    const neededMaterialName = getNeededMaterialName(project);
+    const neededWeight = getNeededWeight(project);
+    const neededQuantity = getNeededQuantity(project);
+    const neededUnit = getNeededUnit(project);
+
+    const matchScore = getMatchScore(project);
+    const matchLabel = getMatchLabel(matchScore);
+    const matchReason = getMatchReason(project);
+
+    const validationStatus = getValidationStatus(project);
+    const validationOfficer = getValidationOfficer(project);
+    const validationNote = getValidationNote(project);
+    const accessNote = getAccessNote(project);
+    const estimatedDuration = getEstimatedDuration(project);
+
+    const surplusWeight = calculateSurplus(availableWeight, neededWeight);
+
+    const routeGeoJSON = useMemo(() => {
+        if (!projectCoordinate) return null;
+
+        if (
+            origin.latitude === projectCoordinate.latitude
+            && origin.longitude === projectCoordinate.longitude
+        ) {
+            return null;
+        }
+
+        return {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+                type: 'LineString',
+                coordinates: [
+                    [origin.longitude, origin.latitude],
+                    [projectCoordinate.longitude, projectCoordinate.latitude]
+                ]
+            }
+        };
+    }, [origin, projectCoordinate]);
+
+    useEffect(() => {
+        if (!mapRef.current) return;
+
+        if (!destination) {
+            mapRef.current.flyTo({
+                center: [origin.longitude, origin.latitude],
+                zoom: 13.5,
+                duration: 700
+            });
+            return;
+        }
+
+        const samePoint = Math.abs(origin.longitude - destination.longitude) < 0.00001
+            && Math.abs(origin.latitude - destination.latitude) < 0.00001;
+
+        if (samePoint) {
+            mapRef.current.flyTo({
+                center: [origin.longitude, origin.latitude],
+                zoom: 13.5,
+                duration: 700
+            });
+            return;
+        }
+
+        const west = Math.min(origin.longitude, destination.longitude);
+        const east = Math.max(origin.longitude, destination.longitude);
+        const south = Math.min(origin.latitude, destination.latitude);
+        const north = Math.max(origin.latitude, destination.latitude);
+
+        mapRef.current.fitBounds(
+            [[west, south], [east, north]],
+            { padding: 70, duration: 800, maxZoom: 14 }
+        );
+    }, [origin, destination]);
+
+    const handleNext = () => {
+        const payload = {
+            ...projectData,
+            selectedProject: projectData,
+            materialData,
+            detailConfirmed: true,
+            project_id: getProjectId(project),
+            match_score: matchScore,
+            match_label: matchLabel
+        };
+
+        onNext?.(payload);
+    };
+
+    const hasProjectImage = Boolean(projectImage);
+    const hasProjectCoordinates = hasCoordinates(project);
+    const distanceText = formatDistance(projectDistance);
+    const nextButtonLabel = 'Salurkan ke Proyek Ini';
+
+    return (
+        <main className="min-h-screen bg-[#FCF9F8] pb-24 font-sans text-gray-900">
+            <header className="sticky top-0 z-40 border-b border-gray-100 bg-[#FCF9F8]/95 px-8 py-4 backdrop-blur">
+                <div className="mx-auto flex max-w-[1280px] items-center justify-between">
+                    <button type="button" onClick={onBack} className="flex items-center gap-2 text-[10px] font-bold text-gray-600 transition hover:text-gray-900">
+                        <ArrowLeft className="h-4 w-4" />
+                        Kembali ke Matching
+                    </button>
+
+                    <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1.5 rounded-md bg-gray-100 px-3 py-1.5 text-[8px] font-black tracking-wider text-gray-500">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            ID REFERENSI : {getReferenceId(project)}
+                        </span>
+
+                        <span className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-[9px] font-bold text-white shadow-sm">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-yellow-400" />
+                            Data AI Match Dipilih
+                        </span>
                     </div>
                 </div>
-            </div>
+            </header>
 
-            <div className="max-w-[1280px] mx-auto px-6 mt-6">
-                
-                {/* Status Bar */}
-                <div className="bg-white rounded-xl p-3 flex justify-between items-center shadow-sm border border-gray-100 mb-6">
-                    <p className="text-[10px] font-bold text-gray-500 flex items-center gap-2">
-                        <span className="text-gray-300">⚑</span> Langkah Berikutnya: Konfirmasi Pickup / Kirim
+            <div className="mx-auto max-w-[1280px] px-6 pt-5">
+                <div className="mb-5 flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+                    <p className="flex items-center gap-2 text-[9px] font-bold text-gray-500">
+                        <span className="text-gray-300">⚑</span>
+                        Langkah Berikutnya: Konfirmasi Pickup / Kirim
                     </p>
-                    <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Siap Diproses
+
+                    <span className="flex items-center gap-1.5 text-[8px] font-bold text-emerald-600">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        Siap Diproses
                     </span>
                 </div>
 
-                {/* Header Title */}
-                <div className="mb-8">
-                    <div className="flex gap-2 mb-3">
-                        <span className="bg-[#FFCC00] text-gray-900 text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">Konfirmasi Tujuan Penyaluran</span>
-                        <span className="bg-emerald-100 text-emerald-700 text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">Diverifikasi Lapangan</span>
+                <section className="mb-7">
+                    <div className="mb-3 flex flex-wrap gap-2">
+                        <StatusBadge tone="yellow">Konfirmasi Tujuan Penyaluran</StatusBadge>
+                        <StatusBadge>Dari AI Matching</StatusBadge>
+                        {matchScore > 0 && (
+                            <StatusBadge tone="green">{matchScore}% Match</StatusBadge>
+                        )}
                     </div>
-                    <h1 className="text-[32px] font-black text-gray-900 mb-2 tracking-tight">Detail Kebutuhan Proyek</h1>
-                    <p className="text-[12px] font-medium text-gray-500 max-w-2xl leading-relaxed">
-                        Tinjau kecocokan material Anda dengan kebutuhan fasilitas umum ini sebelum menentukan metode pengiriman atau penjemputan oleh relawan terdekat.
-                    </p>
-                </div>
 
-                {/* Main Grid Split (60:40) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    
-                    {/* KOLOM KIRI (Info Proyek - Col 7) */}
-                    <div className="lg:col-span-7 space-y-4">
-                        
-                        {/* Project Header Card */}
-                        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100">
-                            <div className="flex gap-2 mb-4">
-                                <span className="bg-[#E6F4EA] text-[#137333] text-[9px] font-bold px-2 py-1 rounded border border-emerald-100 flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> Terverifikasi RW 05</span>
-                                <span className="bg-red-50 text-red-600 text-[9px] font-bold px-2 py-1 rounded border border-red-100 flex items-center gap-1"><span className="text-red-500 font-black">*</span> URGENT FASUM</span>
-                                <span className="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-1 rounded border border-gray-200">Prioritas Fasilitas Publik</span>
+                    <h1 className="text-[32px] font-black tracking-tight text-gray-900">
+                        Detail Kebutuhan Proyek
+                    </h1>
+
+                    <p className="mt-1.5 max-w-3xl text-[11px] font-medium leading-relaxed text-gray-500">
+                        Tinjau detail proyek dan kecocokan material berdasarkan data yang diterima dari AI Match sebelum menentukan metode pengiriman atau penjemputan.
+                    </p>
+                </section>
+
+                <div className="grid grid-cols-12 gap-5">
+                    <div className="col-span-7 space-y-4">
+                        <section className="rounded-[22px] border border-gray-100 bg-white p-5 shadow-sm">
+                            <div className="mb-4 flex flex-wrap items-center gap-2">
+                                <StatusBadge>
+                                    <ShieldCheck className="h-3 w-3" />
+                                    {validationStatus || 'Status verifikasi tersedia'}
+                                </StatusBadge>
+
+                                {project?.urgent && (
+                                    <StatusBadge tone="red">
+                                        <span className="font-black">*</span>
+                                        URGENT
+                                    </StatusBadge>
+                                )}
+
+                                <span className="rounded-md border border-gray-200 bg-gray-100 px-2 py-1 text-[8px] font-bold text-gray-600">
+                                    {projectCategory}
+                                </span>
                             </div>
 
-                            <p className="text-[10px] font-bold text-gray-600 flex items-center gap-1.5 mb-1">
-                                <MapPin className="w-3.5 h-3.5 text-red-500" /> <strong className="text-gray-900">{project.distance}</strong> dari lokasi material
-                            </p>
-                            <h2 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">{project.title}</h2>
-                            <p className="text-[11px] font-medium text-gray-500 flex items-center gap-1.5 mb-5">
-                                <MapPin className="w-3.5 h-3.5" /> {project.location}
+                            <p className="mb-1.5 flex items-center gap-1.5 text-[9px] font-bold text-gray-600">
+                                <MapPin className="h-3.5 w-3.5 text-red-500" />
+                                <strong className="text-gray-900">{distanceText}</strong>
+                                {distanceText !== '-' && ' dari lokasi material'}
                             </p>
 
-                            {/* Foto Lapangan */}
-                            <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden mb-5 border border-gray-100 shadow-sm">
-                                <img src="https://images.unsplash.com/photo-1541888081682-1981a8b1d9db?auto=format&fit=crop&q=80&w=1200" alt="Kondisi Lapangan" className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end justify-between p-4">
-                                    <p className="text-white text-[10px] font-medium flex items-center gap-2">
-                                        <Camera className="w-4 h-4" /> Dokumentasi survei lapangan tim relawan Sisain (Kemarin, 14:20 WIB)
+                            <h2 className="text-[28px] font-black tracking-tight text-gray-900">
+                                {projectName}
+                            </h2>
+
+                            <p className="mb-5 flex items-center gap-1.5 text-[10px] font-medium text-gray-500">
+                                <MapPin className="h-3.5 w-3.5" />
+                                {projectLocation}
+                            </p>
+
+                            {organization && (
+                                <div className="mb-4 flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                                    <Shield className="h-3.5 w-3.5 text-emerald-600" />
+                                    <div>
+                                        <p className="text-[7px] font-black uppercase tracking-widest text-gray-400">
+                                            Pengelola / Pemohon
+                                        </p>
+                                        <p className="mt-0.5 text-[9px] font-bold text-gray-800">
+                                            {organization}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="relative mb-4 aspect-[16/9] overflow-hidden rounded-[16px] border border-gray-100 bg-gray-100">
+                                {hasProjectImage ? (
+                                    <img src={projectImage} alt={projectName} className="h-full w-full object-cover" />
+                                ) : (
+                                    <div className="flex h-full items-center justify-center bg-[#EEF3EE]">
+                                        <div className="text-center">
+                                            <MapPin className="mx-auto h-8 w-8 text-emerald-500" />
+                                            <p className="mt-2 text-[9px] font-bold text-gray-500">
+                                                Foto proyek belum tersedia dari AI Match
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/75 to-transparent px-4 pb-3 pt-8">
+                                    <p className="flex items-center gap-2 text-[8px] font-medium text-white">
+                                        <Camera className="h-3.5 w-3.5" />
+                                        Dokumentasi proyek
                                     </p>
-                                    <span className="bg-white/90 backdrop-blur text-gray-900 text-[9px] font-bold px-2.5 py-1 rounded-full shadow-sm">
-                                        Kondisi Lapangan Asli
+
+                                    <span className="rounded-full bg-white/90 px-2.5 py-1 text-[7px] font-bold text-gray-800">
+                                        Data AI Match
                                     </span>
                                 </div>
                             </div>
 
-                            {/* Box Kegunaan */}
-                            <div className="bg-[#FFFAEB] rounded-2xl p-5 border border-yellow-100/60">
-                                <p className="text-[10px] font-black text-yellow-700 uppercase tracking-widest flex items-center gap-1.5 mb-2">
-                                    <Wrench className="w-3.5 h-3.5" /> Material Akan Digunakan Untuk:
+                            <div className="rounded-[16px] border border-yellow-100 bg-[#FFFAEB] p-4">
+                                <p className="mb-2 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-yellow-700">
+                                    <Wrench className="h-3.5 w-3.5" />
+                                    Material Akan Digunakan Untuk
                                 </p>
-                                <h3 className="text-[15px] font-black text-gray-900 mb-2">Perbaikan jalan lingkungan & talud akses posyandu</h3>
-                                <p className="text-[11px] text-gray-600 leading-relaxed mb-4">
-                                    Pengecoran dan penambalan 45 meter akses jalan lorong gang warga yang amblas akibat genangan air dan rembesan saluran air hujan. Akses ini merupakan jalur utama lansia menuju posyandu serta anak-anak sekolah dasar saat jam padat pagi hari.
-                                </p>
-                                <div className="bg-white rounded-lg p-2.5 flex items-start gap-2 border border-yellow-50 shadow-sm">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                    <p className="text-[10px] font-bold text-gray-700">Target penyelesaian: Rampung minggu ini melalui kerja bakti swadaya warga.</p>
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* Box Validasi Fisik */}
-                        <div className="bg-[#F9FDF9] rounded-[24px] p-6 shadow-sm border border-emerald-100 flex items-start gap-4">
-                            <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center shrink-0 border border-emerald-200">
-                                <Shield className="w-6 h-6 text-emerald-600" />
+                                <h3 className="text-[14px] font-black text-gray-900">
+                                    {projectPurpose || neededMaterialName || 'Keterangan penggunaan belum tersedia'}
+                                </h3>
+
+                                {projectDescription && (
+                                    <p className="mt-2 text-[10px] leading-relaxed text-gray-600">
+                                        {projectDescription}
+                                    </p>
+                                )}
+
+                                {neededMaterialName && (
+                                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-yellow-100 bg-white p-2.5">
+                                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                                        <p className="text-[9px] font-bold text-gray-700">
+                                            Material yang dibutuhkan: {neededMaterialName}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
-                            <div className="flex-1">
-                                <div className="flex justify-between items-center mb-1">
-                                    <h3 className="text-sm font-black text-gray-900">Validasi Fisik Terkonfirmasi</h3>
-                                    <span className="text-[9px] font-bold text-gray-400">Kemarin, 16:00 WIB</span>
+                        </section>
+
+                        <section className="rounded-[22px] border border-emerald-100 bg-[#F9FDF9] p-5 shadow-sm">
+                            <div className="flex items-start gap-4">
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-100">
+                                    <Shield className="h-5 w-5 text-emerald-600" />
                                 </div>
-                                <p className="text-[11px] text-gray-600 font-medium mb-3">Permintaan diverifikasi langsung oleh Mas Heru (Koordinator Lapangan Sisain Candisari).</p>
-                                <div className="flex items-start gap-2">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                                    <p className="text-[10px] text-gray-500 leading-relaxed italic">
-                                        Survei fisik dan kelayakan kebutuhan semen telah divalidasi langsung di titik proyek gang RT 03. Pengurus RT telah menyiapkan tempat penyimpanan tertutup terpal anti-hujan.
+
+                                <div className="min-w-0 flex-1">
+                                    <div className="mb-1 flex items-center justify-between gap-4">
+                                        <h3 className="text-[12px] font-black text-gray-900">
+                                            Informasi Verifikasi
+                                        </h3>
+
+                                        <span className="text-[8px] font-bold text-gray-400">
+                                            {formatDate(project?.verified_at ?? project?.updated_at)}
+                                        </span>
+                                    </div>
+
+                                    <p className="mb-3 text-[9px] font-medium text-gray-600">
+                                        {validationOfficer
+                                            ? `Permintaan diverifikasi oleh ${validationOfficer}.`
+                                            : validationStatus
+                                                ? `Status verifikasi: ${validationStatus}.`
+                                                : 'Informasi verifikasi detail belum dikirim oleh API.'}
+                                    </p>
+
+                                    <div className="flex items-start gap-2">
+                                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                                        <p className="text-[9px] italic leading-relaxed text-gray-500">
+                                            {validationNote || 'Catatan validasi belum tersedia dari data AI Match.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div className="col-span-5 space-y-4">
+                        <section className="rounded-[22px] border border-gray-100 bg-white p-5 shadow-sm">
+                            <div className="mb-4 flex items-center justify-between gap-3">
+                                <SectionTitle icon={MapIcon}>
+                                    Kecocokan Material
+                                </SectionTitle>
+
+                                <span className="rounded-md bg-[#FFCC00] px-2.5 py-1 text-[8px] font-black text-gray-900">
+                                    {matchLabel}
+                                </span>
+                            </div>
+
+                            <div className="mb-4 grid grid-cols-2 gap-3">
+                                <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-center">
+                                    <p className="mb-1 text-[7px] font-black uppercase tracking-widest text-gray-400">
+                                        Material Kamu
+                                    </p>
+
+                                    <p className="text-lg font-black leading-none text-gray-900">
+                                        {formatWeight(availableWeight)}
+                                    </p>
+
+                                    <p className="mt-1 text-[8px] font-medium text-gray-500">
+                                        {materialType} • {formatQuantity(availableQuantity, availableUnit)}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-xl border border-red-100 bg-white p-3 text-center shadow-sm">
+                                    <p className="mb-1 text-[7px] font-black uppercase tracking-widest text-red-400">
+                                        Kebutuhan Proyek
+                                    </p>
+
+                                    <p className="text-lg font-black leading-none text-red-600">
+                                        {formatWeight(neededWeight)}
+                                    </p>
+
+                                    <p className="mt-1 text-[8px] font-medium text-gray-500">
+                                        {neededMaterialName || 'Kebutuhan'} • {formatQuantity(neededQuantity, neededUnit)}
                                     </p>
                                 </div>
                             </div>
-                        </div>
 
-                    </div>
-
-                    {/* KOLOM KANAN (Kecocokan & Aksi - Col 5) */}
-                    <div className="lg:col-span-5 space-y-4">
-                        
-                        {/* Match Analytics Card */}
-                        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100">
-                            <div className="flex justify-between items-center mb-5">
-                                <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
-                                    <MapIcon className="w-4 h-4 text-yellow-600" /> Kecocokan Material
-                                </h3>
-                                <span className="bg-[#FFCC00] text-gray-900 text-[9px] font-black px-2.5 py-1 rounded-md">Kesesuaian Tinggi</span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 mb-4">
-                                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 text-center">
-                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Material Kamu</p>
-                                    <p className="text-xl font-black text-gray-900 leading-none mb-1">{material.availableKg} kg</p>
-                                    <p className="text-[9px] font-medium text-gray-500">{material.type} • {material.availableSak} Sak</p>
-                                </div>
-                                <div className="bg-white rounded-xl p-3 border border-red-100 shadow-sm text-center">
-                                    <p className="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1">Kebutuhan RT 03</p>
-                                    <p className="text-xl font-black text-red-600 leading-none mb-1">{project.neededKg} kg</p>
-                                    <p className="text-[9px] font-medium text-gray-500">Kebutuhan • {project.neededSak} Sak</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-50 rounded-xl p-4 flex justify-between items-center border border-gray-100 mb-4">
+                            <div className="mb-4 flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 p-3.5">
                                 <div>
-                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Index Kecocokan Spasial & Mutu</p>
-                                    <p className="text-[11px] font-black text-gray-900">Tipe semen & lokasi sangat optimal</p>
+                                    <p className="mb-1 text-[7px] font-black uppercase tracking-widest text-gray-400">
+                                        Index Kecocokan
+                                    </p>
+
+                                    <p className="text-[10px] font-black text-gray-900">
+                                        {matchLabel}
+                                    </p>
+
+                                    {matchReason && (
+                                        <p className="mt-1.5 max-w-[220px] text-[8px] leading-relaxed text-gray-500">
+                                            {matchReason}
+                                        </p>
+                                    )}
                                 </div>
-                                <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center border-[3px] border-gray-900 shadow-sm">
-                                    <span className="text-sm font-black text-gray-900">98%</span>
+
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-gray-900 bg-[#FFCC00] shadow-sm">
+                                    <span className="text-sm font-black text-gray-900">
+                                        {matchScore}%
+                                    </span>
                                 </div>
                             </div>
 
-                            <div className="bg-[#FFFAEB] rounded-xl p-4 border border-yellow-200/50 mb-5">
-                                <h4 className="text-[11px] font-black text-yellow-900 flex items-center gap-1.5 mb-1.5">
-                                    <Check className="w-4 h-4 text-yellow-600" /> Material Anda sangat pas & efisien
+                            <div className="mb-4 rounded-xl border border-yellow-100 bg-[#FFFAEB] p-3.5">
+                                <h4 className="mb-1.5 flex items-center gap-1.5 text-[10px] font-black text-yellow-900">
+                                    <Check className="h-3.5 w-3.5 text-yellow-600" />
+                                    Ringkasan alokasi
                                 </h4>
-                                <p className="text-[9px] text-gray-600 leading-relaxed">
-                                    Kebutuhan 120 kg (3 sak) langsung dialokasikan untuk perbaikan cor jalan gang warga. Sisa surplus 40 kg (1 sak) otomatis dicadangkan untuk plesteran Musala Al-Ikhlas terdekat (tanpa repot, diatur langsung oleh relawan logistik Sisain).
+
+                                <p className="text-[9px] leading-relaxed text-gray-600">
+                                    {neededWeight !== null && availableWeight !== null
+                                        ? `Kebutuhan proyek ${formatWeight(neededWeight)} dibanding material tersedia ${formatWeight(availableWeight)}.`
+                                        : neededQuantity !== null && availableQuantity !== null
+                                            ? `Kebutuhan proyek ${formatQuantity(neededQuantity, neededUnit)} dibanding material tersedia ${formatQuantity(availableQuantity, availableUnit)}.`
+                                            : 'Data kebutuhan dan material belum cukup untuk menghitung alokasi.'}
                                 </p>
+
+                                {surplusWeight !== null && surplusWeight > 0 && (
+                                    <p className="mt-2 text-[9px] font-bold text-emerald-700">
+                                        Estimasi material tersisa: {formatWeight(surplusWeight)}.
+                                    </p>
+                                )}
+
+                                {surplusWeight !== null && surplusWeight < 0 && (
+                                    <p className="mt-2 text-[9px] font-bold text-red-600">
+                                        Material kurang sekitar {formatWeight(Math.abs(surplusWeight))} dari kebutuhan.
+                                    </p>
+                                )}
+
+                                {surplusWeight === 0 && (
+                                    <p className="mt-2 text-[9px] font-bold text-emerald-700">
+                                        Jumlah material sesuai dengan kebutuhan terdata.
+                                    </p>
+                                )}
                             </div>
 
                             <div className="space-y-2.5">
-                                <div className="flex items-start gap-2">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                                    <p className="text-[10px] font-medium text-gray-700"><strong className="text-gray-900">Tipe Material:</strong> Semen Portland PCC (Sangat sesuai rabat jalan beton)</p>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                                    <p className="text-[10px] font-medium text-gray-700"><strong className="text-gray-900">Kondisi Mutu:</strong> Kering & utuh Grade A (Siap campur agregat langsung)</p>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                                    <p className="text-[10px] font-medium text-gray-700"><strong className="text-gray-900">Volume:</strong> Mencukupi 100% volume rencana kerja bakti RT</p>
-                                </div>
-                            </div>
-                        </div>
+                                <InfoRow icon={CheckCircle2} label="Tipe Material">
+                                    {materialType}
+                                </InfoRow>
 
-                        {/* Rute Spasial Map Card */}
-                        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
-                                    <MapIcon className="w-4 h-4 text-emerald-600" /> Rute Distribusi Spasial
-                                </h3>
-                                <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2.5 py-1 rounded-md">±4 Menit</span>
+                                <InfoRow icon={ShieldCheck} label="Kondisi Mutu">
+                                    {materialCondition}
+                                </InfoRow>
+
+                                <InfoRow icon={CheckCircle2} label="Kebutuhan">
+                                    {formatQuantity(neededQuantity, neededUnit)}
+                                </InfoRow>
+
+                                <InfoRow icon={MapPin} label="Lokasi Proyek">
+                                    {projectLocation}
+                                </InfoRow>
+                            </div>
+                        </section>
+
+                        <section className="rounded-[22px] border border-gray-100 bg-white p-5 shadow-sm">
+                            <div className="mb-4 flex items-center justify-between">
+                                <SectionTitle icon={MapIcon} accent="green">
+                                    Rute Distribusi Spasial
+                                </SectionTitle>
+
+                                {estimatedDuration && (
+                                    <span className="flex items-center gap-1 rounded-md bg-gray-100 px-2.5 py-1 text-[8px] font-bold text-gray-600">
+                                        <Clock3 className="h-3 w-3" />
+                                        {estimatedDuration}
+                                    </span>
+                                )}
                             </div>
 
-                            <div className="relative w-full h-48 rounded-xl overflow-hidden mb-4 border border-gray-200 bg-gray-100">
+                            <div className="relative mb-3 h-[220px] overflow-hidden rounded-xl border border-gray-200 bg-[#EEF3EE]">
                                 <Map
-                                    initialViewState={{ longitude: 110.4245, latitude: -7.023, zoom: 14.5 }}
-                                    mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+                                    ref={mapRef}
+                                    initialViewState={{ longitude: origin.longitude, latitude: origin.latitude, zoom: 12.8 }}
+                                    mapStyle={OSM_STYLE}
                                     style={{ width: '100%', height: '100%' }}
-                                    interactive={false}
+                                    attributionControl={false}
+                                    dragRotate={false}
+                                    touchZoomRotate={false}
                                 >
-                                    {/* Garis Rute */}
-                                    <Source id="route" type="geojson" data={routeGeoJSON}>
-                                        <Layer 
-                                            id="route-line" 
-                                            type="line" 
-                                            paint={{ 'line-color': '#10B981', 'line-width': 4, 'line-dasharray': [2, 1] }} 
-                                        />
-                                    </Source>
+                                    <NavigationControl position="bottom-right" showCompass={false} />
 
-                                    {/* Marker Titik Asal */}
-                                    <Marker longitude={material.originCoords[0]} latitude={material.originCoords[1]} anchor="center">
-                                        <div className="w-4 h-4 bg-[#FFCC00] rounded-full border-[3px] border-gray-900 shadow-md"></div>
+                                    {routeGeoJSON && (
+                                        <Source id="detail-route-source" type="geojson" data={routeGeoJSON}>
+                                            <Layer
+                                                id="detail-route-line"
+                                                type="line"
+                                                paint={{
+                                                    'line-color': '#10B981',
+                                                    'line-width': 4,
+                                                    'line-dasharray': [2, 1],
+                                                    'line-opacity': 0.9
+                                                }}
+                                            />
+                                        </Source>
+                                    )}
+
+                                    <Marker longitude={origin.longitude} latitude={origin.latitude} anchor="center">
+                                        <div className="flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-gray-900 bg-[#FFCC00] shadow-md">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-gray-900" />
+                                        </div>
                                     </Marker>
 
-                                    {/* Marker Titik Tujuan */}
-                                    <Marker longitude={project.coordinates[0]} latitude={project.coordinates[1]} anchor="center">
-                                        <div className="w-4 h-4 bg-red-500 rounded-full border-[3px] border-white shadow-md"></div>
-                                    </Marker>
+                                    {destination && (
+                                        <Marker longitude={destination.longitude} latitude={destination.latitude} anchor="center">
+                                            <div className="flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-white bg-red-500 shadow-md">
+                                                <MapPin className="h-3.5 w-3.5 text-white" />
+                                            </div>
+                                        </Marker>
+                                    )}
                                 </Map>
 
-                                {/* Floating UI on Map */}
-                                <div className="absolute top-3 left-3 bg-white/95 backdrop-blur p-2.5 rounded-xl shadow-md border border-gray-100 min-w-[200px]">
-                                    <div className="relative pl-5">
-                                        <div className="absolute left-0 top-1 w-2 h-2 bg-[#FFCC00] border-2 border-gray-900 rounded-full z-10"></div>
-                                        <div className="absolute left-[3px] top-3 bottom-0 w-0.5 bg-emerald-400"></div>
-                                        <p className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Titik Asal Sisa Proyek</p>
-                                        <p className="text-[9px] font-black text-gray-900 mb-2">Jl. Pandanaran No. 42 (Gudang Anda)</p>
+                                <div className="absolute left-3 top-3 rounded-xl border border-gray-100 bg-white/95 p-3 shadow-md backdrop-blur">
+                                    <div className="relative pl-4">
+                                        <span className="absolute left-0 top-1 h-2 w-2 rounded-full border-2 border-gray-900 bg-[#FFCC00]" />
+
+                                        <p className="text-[7px] font-black uppercase tracking-widest text-gray-400">
+                                            Titik Asal Material
+                                        </p>
+
+                                        <p className="mt-0.5 max-w-[175px] text-[9px] font-black text-gray-900">
+                                            {firstValue(
+                                                material?.alamat,
+                                                material?.lokasi,
+                                                material?.location,
+                                                'Lokasi material'
+                                            )}
+                                        </p>
                                     </div>
-                                    <div className="relative pl-5 my-1">
-                                        <span className="bg-emerald-100 text-emerald-700 text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider relative -left-1">0.7 KM Jalur Lorong Aman</span>
-                                    </div>
-                                    <div className="relative pl-5 mt-2">
-                                        <div className="absolute left-0 top-1 w-2 h-2 bg-red-500 border-2 border-white rounded-full shadow-sm z-10"></div>
-                                        <p className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Tujuan Penyaluran</p>
-                                        <p className="text-[9px] font-black text-gray-900">Gang RT 03 Candisari, Semarang</p>
-                                    </div>
+
+                                    {destination && (
+                                        <>
+                                            <div className="ml-[3px] my-1 h-4 w-0.5 bg-emerald-400" />
+
+                                            <div className="relative pl-4">
+                                                <span className="absolute left-0 top-1 h-2 w-2 rounded-full bg-red-500" />
+
+                                                <p className="text-[7px] font-black uppercase tracking-widest text-gray-400">
+                                                    Tujuan Penyaluran
+                                                </p>
+
+                                                <p className="mt-0.5 max-w-[175px] text-[9px] font-black text-gray-900">
+                                                    {projectName}
+                                                </p>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
-                                <div className="absolute bottom-3 left-3 flex gap-2">
-                                    <span className="bg-white/90 backdrop-blur text-emerald-700 text-[8px] font-bold px-2 py-1 rounded flex items-center gap-1 shadow-sm"><Leaf className="w-2.5 h-2.5"/> Hemat Emisi CO2e Logistik</span>
-                                    <span className="bg-white/90 backdrop-blur text-yellow-700 text-[8px] font-bold px-2 py-1 rounded flex items-center gap-1 shadow-sm"><Truck className="w-2.5 h-2.5"/> Akses Tosa / Pikap RT</span>
+                                <div className="absolute bottom-3 left-3 flex flex-wrap gap-2">
+                                    <span className="flex items-center gap-1 rounded bg-white/90 px-2 py-1 text-[7px] font-bold text-emerald-700 shadow-sm">
+                                        <Leaf className="h-2.5 w-2.5" />
+                                        OpenStreetMap
+                                    </span>
+
+                                    <span className="flex items-center gap-1 rounded bg-white/90 px-2 py-1 text-[7px] font-bold text-yellow-700 shadow-sm">
+                                        <Truck className="h-2.5 w-2.5" />
+                                        Rute Distribusi
+                                    </span>
                                 </div>
+
+                                {!hasProjectCoordinates && (
+                                    <div className="absolute inset-x-3 bottom-12 rounded-lg border border-yellow-100 bg-[#FFFAEB]/95 px-3 py-2 text-center">
+                                        <p className="text-[8px] font-bold text-yellow-800">
+                                            Koordinat proyek belum tersedia dari data AI Match.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="bg-gray-50 rounded-lg p-2.5 flex justify-between items-center border border-gray-100">
-                                <span className="text-[10px] text-gray-600 font-medium flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-gray-400"/> Gerbang gang terbuka 24 jam untuk pengiriman</span>
-                                <span className="text-[9px] font-black text-gray-900">Akses Mudah</span>
+                            <div className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
+                                <span className="flex items-center gap-2 text-[8px] font-medium text-gray-600">
+                                    <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                                    {accessNote}
+                                </span>
+
+                                <span className="text-[8px] font-black text-gray-900">
+                                    {distanceText}
+                                </span>
                             </div>
-                        </div>
+                        </section>
 
-                        {/* Action Card */}
-                        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 text-center">
-                            <h3 className="text-[11px] font-black text-gray-900 mb-1 text-left">Langkah selanjutnya:</h3>
-                            <p className="text-[10px] text-gray-500 leading-relaxed mb-5 text-left">
-                                Tentukan jadwal kurir penjemputan gratis oleh armada Sisain atau pilih opsi antar mandiri bersama tim kontraktor Anda.
-                            </p>
+                        <section className="rounded-[22px] border border-gray-100 bg-white p-5 text-center shadow-sm">
+                            <div className="mb-4 text-left">
+                                <h3 className="text-[11px] font-black text-gray-900">
+                                    Langkah selanjutnya:
+                                </h3>
 
-                            <button onClick={onNext} className="w-full bg-[#FFCC00] hover:bg-yellow-400 text-gray-900 text-xs font-black py-3.5 rounded-full flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-sm mb-3">
-                                Salurkan ke Proyek Ini <ArrowRight className="w-4 h-4" />
+                                <p className="mt-1.5 text-[9px] leading-relaxed text-gray-500">
+                                    Setelah proyek ini dipilih, data hasil AI Match dan data material akan diteruskan ke tahap konfirmasi pengiriman.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handleNext}
+                                className="mb-2 flex w-full items-center justify-center gap-2 rounded-full bg-[#FFCC00] py-3.5 text-[10px] font-black text-gray-900 shadow-sm transition hover:bg-yellow-400 active:scale-[0.99]"
+                            >
+                                {nextButtonLabel}
+                                <ArrowRight className="h-4 w-4" />
                             </button>
-                            <button onClick={onBack} className="w-full bg-[#FCF9F8] border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold py-3.5 rounded-full flex items-center justify-center gap-2 transition-colors mb-4">
-                                <ArrowLeft className="w-4 h-4" /> Pilih Tujuan Lain di Matching
+
+                            <button
+                                type="button"
+                                onClick={onBack}
+                                className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-200 bg-[#FCF9F8] py-3.5 text-[9px] font-bold text-gray-700 transition hover:bg-gray-50"
+                            >
+                                <ArrowLeft className="h-3.5 w-3.5" />
+                                Pilih Tujuan Lain di Matching
                             </button>
 
-                            <p className="text-[9px] text-emerald-600 font-bold flex items-center justify-center gap-1">
-                                <Lock className="w-3 h-3" /> Konfirmasi ini mengamankan alokasi material selama 12 jam
+                            <p className="mt-4 flex items-center justify-center gap-1.5 text-[8px] font-bold text-emerald-600">
+                                <Lock className="h-3 w-3" />
+                                Data proyek dan material diteruskan ke tahap berikutnya
                             </p>
-                        </div>
-                        
+                        </section>
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     );
 }

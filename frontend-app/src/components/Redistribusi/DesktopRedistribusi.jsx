@@ -1,24 +1,78 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Plus, Clock, ArrowRight, ShieldCheck, Truck, Lock,
     CheckCircle2, ChevronRight, Camera, BarChart2,
-    Building2, Coins, MapPin, Calendar, Recycle, Droplet
+    Building2, Coins, MapPin, Calendar, Recycle, Droplet, Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { redistribusiData } from '../../data/redistribusiData';
+import { aiRedistribusiApi } from '../../api/aiRedistribusiApi';
 
 export default function RedistribusiDesktop() {
-    const { impact, materials, projects } = redistribusiData;
+    const [materials, setMaterials] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('Semua');
 
+    useEffect(() => {
+        const fetchMaterials = async () => {
+            setIsLoading(true);
+            try {
+                const data = await aiRedistribusiApi.getMyMaterials();
+                setMaterials(data || []);
+            } catch (err) {
+                console.error("Gagal memuat data material:", err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchMaterials();
+    }, []);
+
+    const impact = {
+        period: 'Q3 2026',
+        totalWeight: '185',
+        co2Reduced: '0.42t',
+        facilitiesHelped: '3',
+        facilityTypes: 'Balai Warga, Musala, & Jalan',
+        coins: 320
+    };
+
+    const projects = [
+        {
+            id: 1,
+            isFeatured: true,
+            title: 'Perbaikan Jalan Gang RT 03/RW 05 Pleburan',
+            location: 'Kec. Semarang Selatan',
+            badge: 'Butuh Segera',
+            desc: 'Perbaikan jalan kampung menggunakan material sisa paving block dan semen.',
+            progress: 78,
+            contribution: 'Terkontribusi dari 2 Donatur Lokal',
+            schedule: 'Estimasi selesai: 12 Oktober 2026',
+            image: 'https://images.unsplash.com/photo-1584467735811-628d014f1632?auto=format&fit=crop&q=80&w=400'
+        },
+        {
+            id: 2,
+            isFeatured: false,
+            title: 'Renovasi Pagar SDN 01 Ngaliyan',
+            location: 'Kec. Ngaliyan',
+            progress: 45,
+            desc: 'Kebutuhan material bata merah dan semen sisa renovasi gedung sekitar.'
+        }
+    ];
+
+    const filteredMaterials = materials.filter((mat) => {
+        if (activeTab === 'Semua') return true;
+        if (activeTab === 'Siap Jemput') return mat.tersedia === true;
+        if (activeTab === 'Dikurasi') return mat.tersedia === false;
+        return true;
+    });
+
     return (
-        <div className="max-w-[1500px] mx-auto py-8 px-8 bg-[#FAF9F7] min-h-screen">
+        <div className="max-w-[1500px] mx-auto py-8 px-8 bg-[#FAF9F7] min-h-screen font-sans">
             <div className="grid grid-cols-12 gap-8">
 
-                {/* KOLOM KIRI (7/12) */}
                 <div className="col-span-12 lg:col-span-7 xl:col-span-8 space-y-8">
 
-                    {/* Hero Banner */}
                     <div
                         className="relative overflow-hidden rounded-[18px] bg-[#FFFDF8] px-8 py-7 shadow-[0_8px_22px_rgba(0,0,0,0.14)]"
                         style={{
@@ -31,7 +85,7 @@ export default function RedistribusiDesktop() {
                         </div>
 
                         <h1 className="relative z-10 mb-3 max-w-[750px] text-[30px] font-extrabold leading-[1.15] tracking-[-0.8px] text-[#202020] xl:text-[32px]">
-                            Material sisa proyekmu bisa{" "}berguna kembali.
+                            Material sisa proyekmu bisa berguna kembali.
                         </h1>
 
                         <p className="relative z-10 mb-5 max-w-[700px] text-[14px] font-medium leading-[1.65] tracking-[-0.05px] text-[#625D51]">
@@ -45,12 +99,12 @@ export default function RedistribusiDesktop() {
                                 <ArrowRight className="h-[17px] w-[17px] stroke-[2.5] transition-transform duration-200 group-hover:translate-x-1" />
                             </Link>
 
-                            <button type="button" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#E7E4DB] bg-[#F7F7F5]/90 px-6 py-[12px] text-[14px] font-bold text-[#292929] transition-all duration-200 hover:bg-white hover:shadow-sm">
+                            <Link to="/maps" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#E7E4DB] bg-[#F7F7F5]/90 px-6 py-[12px] text-[14px] font-bold text-[#292929] transition-all duration-200 hover:bg-white hover:shadow-sm">
                                 <span className="flex h-[17px] w-[17px] items-center justify-center rounded-full border-[2px] border-dotted border-[#008F69]">
                                     <span className="h-[3px] w-[3px] rounded-full bg-[#008F69]" />
                                 </span>
-                                <span>Lihat Aktivitas</span>
-                            </button>
+                                <span>Lihat Peta</span>
+                            </Link>
                         </div>
 
                         <div className="relative z-10 flex flex-wrap items-center gap-x-5 gap-y-2 text-[10px] font-bold text-[#28261F]">
@@ -74,12 +128,14 @@ export default function RedistribusiDesktop() {
                             </span>
                         </div>
                     </div>
-                    {/* Material Saya Section */}
+
                     <div>
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <h2 className="text-xl font-black text-gray-900">Material Saya</h2>
-                                <span className="bg-yellow-100 text-yellow-800 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">3 Aktif</span>
+                                <span className="bg-yellow-100 text-yellow-800 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">
+                                    {materials.length} Total
+                                </span>
                             </div>
                             <div className="flex bg-gray-100 p-1 rounded-full border border-gray-200">
                                 {['Semua', 'Siap Jemput', 'Dikurasi'].map((tab) => (
@@ -93,73 +149,44 @@ export default function RedistribusiDesktop() {
                             </div>
                         </div>
 
-                        <div className="space-y-4">
-                            {materials.map((mat) => (
-                                mat.isFeatured ? (
-                                    /* Featured Material Card */
-                                    <div key={mat.id} className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 flex gap-6 items-center">
-                                        <div className="w-[180px] h-[140px] shrink-0 rounded-2xl overflow-hidden relative">
-                                            <img src={mat.image} alt={mat.title} className="w-full h-full object-cover" />
-                                            <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-                                                <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> {mat.statusBadge}
-                                            </div>
-                                        </div>
-                                        <div className="flex-1 py-1 pr-2">
-                                            <div className="flex justify-between items-start mb-1">
-                                                <span className="text-[10px] font-black text-gray-400 tracking-wider">{mat.category}</span>
-                                                <span className="text-xs font-bold text-gray-900 bg-gray-100 px-3 py-1 rounded-full">{mat.amount}</span>
-                                            </div>
-                                            <h3 className="text-lg font-black text-gray-900 mb-2">{mat.title}</h3>
-                                            <p className="text-[11px] font-bold text-emerald-700 flex items-center gap-1.5 mb-4">
-                                                <ArrowRight className="w-3.5 h-3.5" /> {mat.matchText}
-                                            </p>
-
-                                            <div className="mb-3">
-                                                <div className="flex justify-between text-[10px] font-bold mb-1.5">
-                                                    <span className="text-gray-600">{mat.progressText}</span>
-                                                    <span className="text-emerald-600">{mat.progressValue}%</span>
-                                                </div>
-                                                <div className="w-full bg-gray-100 rounded-full h-1.5">
-                                                    <div className="bg-emerald-600 h-1.5 rounded-full" style={{ width: `${mat.progressValue}%` }}></div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex justify-between items-center mt-4">
-                                                <span className="text-[11px] font-semibold text-gray-500 flex items-center gap-1.5">
-                                                    <Clock className="w-3.5 h-3.5" /> {mat.schedule}
-                                                </span>
-                                                <button className="bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 text-[11px] font-bold px-4 py-1.5 rounded-full transition-colors">
-                                                    Detail <ChevronRight className="w-3.5 h-3.5 inline" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    /* Small Material Card */
-                                    <div key={mat.id} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex items-center gap-4 transition-all hover:border-yellow-200 hover:shadow-md cursor-pointer">
-                                        <img src={mat.image} alt={mat.title} className="w-16 h-16 rounded-xl object-cover" />
+                        {isLoading ? (
+                            <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-gray-100 flex items-center justify-center gap-2">
+                                <Loader2 className="w-5 h-5 animate-spin text-yellow-500" />
+                                <span className="text-sm font-bold text-gray-500">Memuat data material Anda...</span>
+                            </div>
+                        ) : filteredMaterials.length === 0 ? (
+                            <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-gray-100">
+                                <p className="text-xs font-bold text-gray-500 mb-3">Belum ada material yang didonasikan.</p>
+                                <Link to="/redistribusi/material/new" className="inline-flex items-center gap-1.5 bg-[#FFCC00] text-gray-900 text-xs font-bold px-4 py-2 rounded-full">
+                                    <Plus className="w-4 h-4" /> Tambah Material Sekarang
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {filteredMaterials.map((mat) => (
+                                    <div key={mat.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 transition-all hover:border-yellow-200 hover:shadow-md">
+                                        <img src={mat.image || 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&q=80&w=200'} alt={mat.nama_material} className="w-16 h-16 rounded-xl object-cover shrink-0" />
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
-                                                {mat.aiVerified && <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5"><ShieldCheck className="w-3 h-3" /> Terverifikasi AI</span>}
-                                                {mat.kurasiTag && <span className="bg-yellow-100 text-yellow-800 text-[9px] font-bold px-1.5 py-0.5 rounded">{mat.kurasiTag}</span>}
-                                                <span className="text-[10px] font-semibold text-gray-400">{mat.category}</span>
+                                                <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                                    <ShieldCheck className="w-3 h-3" /> Terverifikasi AI
+                                                </span>
+                                                <span className="text-[10px] font-semibold text-gray-400 capitalize">{mat.kategori}</span>
                                             </div>
-                                            <h4 className="text-sm font-black text-gray-900 truncate mb-0.5">{mat.title}</h4>
-                                            <p className="text-[10px] text-gray-500 truncate">{mat.desc}</p>
+                                            <h4 className="text-sm font-black text-gray-900 truncate mb-0.5">{mat.nama_material}</h4>
+                                            <p className="text-[10px] text-gray-500 truncate">{mat.deskripsi || mat.alamat}</p>
                                         </div>
                                         <div className="flex items-center gap-4 pr-2 shrink-0">
-                                            <span className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5 ${mat.statusColor}`}>
-                                                <Truck className="w-3.5 h-3.5" /> {mat.status}
+                                            <span className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5 ${mat.tersedia ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                                <Truck className="w-3.5 h-3.5" /> {mat.tersedia ? 'Tersedia' : 'Disalurkan'}
                                             </span>
-                                            <ChevronRight className="w-5 h-5 text-gray-400" />
                                         </div>
                                     </div>
-                                )
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Banner Kamera Scan */}
                     <div className="bg-[#FFF8DF] border border-yellow-200 rounded-3xl p-6 flex items-center justify-between shadow-sm">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center shrink-0">
@@ -172,17 +199,15 @@ export default function RedistribusiDesktop() {
                                 </p>
                             </div>
                         </div>
-                        <button className="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-5 py-3 rounded-full flex items-center gap-2 transition-colors shrink-0 shadow-md">
+                        <Link to="/redistribusi/material/new" className="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-5 py-3 rounded-full flex items-center gap-2 transition-colors shrink-0 shadow-md">
                             <span className="border border-white/40 p-1 rounded-md"><Droplet className="w-3.5 h-3.5" /></span> Buka Kamera Scan
-                        </button>
+                        </Link>
                     </div>
 
                 </div>
 
-                {/* KOLOM KANAN (5/12) */}
                 <div className="col-span-12 lg:col-span-5 xl:col-span-4 space-y-6">
 
-                    {/* Impact Card */}
                     <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-black text-gray-900 flex items-center gap-2">
@@ -222,16 +247,11 @@ export default function RedistribusiDesktop() {
                                 </span>
                             </div>
                         </div>
-
-                        <button className="w-full text-left pt-3 text-[11px] font-bold text-gray-700 hover:text-gray-900 flex items-center justify-between group">
-                            Tukar & Salurkan Hak Suara Komunitas <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                        </button>
                     </div>
 
-                    {/* Proyek yang Saya Bantu */}
                     <div>
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-black text-gray-900">Proyek yang Saya Bantu</h3>
+                            <h3 className="font-black text-gray-900">Studi Kasus Proyek Semarang</h3>
                             <span className="bg-emerald-50 text-emerald-600 text-[9px] font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-emerald-100">
                                 <span className="w-1 h-1 bg-emerald-500 rounded-full"></span> Live Update
                             </span>
@@ -285,16 +305,12 @@ export default function RedistribusiDesktop() {
                                         </div>
                                         <h4 className="text-xs font-black text-gray-900 mb-1 mt-2">{proj.title}</h4>
                                         <p className="text-[10px] text-gray-500 mb-3">{proj.desc}</p>
-                                        <button className="text-[10px] font-bold text-yellow-700 hover:text-yellow-800 flex items-center gap-1 group">
-                                            Lihat Kebutuhan Fasum <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                                        </button>
                                     </div>
                                 )
                             ))}
                         </div>
                     </div>
 
-                    {/* Bottom CTA Right */}
                     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mt-6">
                         <div className="flex gap-3 mb-4">
                             <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center shrink-0">

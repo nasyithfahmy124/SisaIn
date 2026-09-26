@@ -1,355 +1,708 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    Check, Cpu, Leaf, MapPin, AlertCircle, RotateCcw,
-    ArrowRight, ShieldCheck, Zap
+    ArrowRight,
+    Check,
+    CircleAlert,
+    CircleCheck,
+    Loader2,
+    MapPin,
+    RotateCcw,
+    Sparkles,
+    Target,
+    Truck,
+    Weight
 } from 'lucide-react';
+import { useAiRedistribusi } from '../../hooks/useAiRedistribusi';
+
+const STEPS = [
+    { id: 'photo', number: '01', label: 'Foto Material' },
+    { id: 'analysis', number: '02', label: 'Analisis AI' },
+    { id: 'confirmation', number: '03', label: 'Konfirmasi' },
+    { id: 'distribution', number: '04', label: 'Distribusi' }
+];
+
+const ANALYSIS_STEPS = [
+    { id: 'material', label: 'Mengenali jenis material', icon: Sparkles },
+    { id: 'condition', label: 'Memeriksa kondisi fisik', icon: CircleCheck },
+    { id: 'weight', label: 'Mengestimasi jumlah & bobot', icon: Weight },
+    { id: 'matching', label: 'Menganalisis potensi fasum terdekat', icon: Target }
+];
+
+const parseResult = (result) => {
+    if (!result) return {};
+    if (typeof result === 'object') return result;
+
+    try {
+        return JSON.parse(result);
+    } catch {
+        return {};
+    }
+};
+
+const normalizeResult = (result) => {
+    const data = parseResult(result);
+
+    return {
+        nama_material: data.nama_material || data.namaMaterial || data.material || 'Material Terdeteksi',
+        kategori: data.kategori || data.category || 'Material',
+        kondisi_barang: data.kondisi_barang || data.kondisi || data.condition || 'Layak Pakai',
+        bobot: data.bobot ?? data.berat ?? data.weight ?? 0,
+        deskripsi: data.deskripsi || data.description || '',
+        jumlah: data.jumlah ?? data.quantity ?? null,
+        satuan: data.satuan || data.unit || '',
+        confidence: data.confidence ?? data.accuracy ?? null,
+        kelayakan: data.kelayakan || data.grade || 'Layak Pakai'
+    };
+};
+
+const getImageUrl = (payload) => payload?.url || payload?.preview || payload?.previewUrl || null;
+
+const formatWeight = (value) => {
+    if (value === null || value === undefined || value === '') return '-';
+
+    const number = Number(value);
+    return Number.isNaN(number) ? `${value}` : `${number.toLocaleString('id-ID')} kg`;
+};
+
+const formatConfidence = (value) => {
+    if (value === null || value === undefined) return null;
+
+    const number = Number(value);
+    if (Number.isNaN(number)) return null;
+
+    return `${number > 1 ? number.toFixed(0) : (number * 100).toFixed(0)}%`;
+};
+
+const getShortName = (value, length = 30) => {
+    if (!value) return 'Material';
+
+    return value.length > length ? `${value.slice(0, length)}...` : value;
+};
 
 export default function AnalisisAIDesktop({ imagePayload, onBack, onNext }) {
+    const { analyzeImage } = useAiRedistribusi();
+
+    const [status, setStatus] = useState('idle');
     const [progress, setProgress] = useState(0);
-    const [scanPosition, setScanPosition] = useState(0);
-    const [scanDirection, setScanDirection] = useState('down');
+    const [scanPosition, setScanPosition] = useState(10);
+    const [scanDirection, setScanDirection] = useState(1);
+    const [analysis, setAnalysis] = useState(null);
+    const [error, setError] = useState('');
 
-    // Animasi Progress & Scanner AI (Simulasi ~2.4 detik)
+    const imageUrl = useMemo(() => getImageUrl(imagePayload), [imagePayload]);
+    const isProcessing = status === 'processing';
+    const isSuccess = status === 'success';
+    const isError = status === 'error';
+
+    const runAnalysis = useCallback(async () => {
+        if (!imagePayload?.file) {
+            setStatus('error');
+            setError('Foto material tidak ditemukan. Silakan unggah foto terlebih dahulu.');
+            return;
+        }
+
+        setStatus('processing');
+        setProgress(0);
+        setAnalysis(null);
+        setError('');
+        setScanPosition(10);
+        setScanDirection(1);
+
+        try {
+            const response = await analyzeImage(imagePayload);
+            const result = normalizeResult(response);
+
+            if (!result.nama_material && !result.kategori) {
+                throw new Error('Hasil analisis AI tidak tersedia.');
+            }
+
+            setAnalysis(result);
+            setProgress(100);
+            setStatus('success');
+        } catch (err) {
+            setStatus('error');
+            setProgress(0);
+            setError(err?.message || 'Gagal memproses analisis AI.');
+        }
+    }, [analyzeImage, imagePayload]);
+
     useEffect(() => {
-        // Progress bar logika
-        const progressInterval = setInterval(() => {
-            setProgress((prev) => {
-                if (prev >= 100) {
-                    clearInterval(progressInterval);
-                    return 100;
-                }
-                return prev + 2; // Naik 2% setiap 50ms
-            });
-        }, 50);
+        runAnalysis();
+    }, [runAnalysis]);
 
-        // Scanner line logika (Naik turun)
-        const scanInterval = setInterval(() => {
-            setScanPosition((prev) => {
-                if (scanDirection === 'down') {
-                    if (prev >= 90) setScanDirection('up');
-                    return prev + 2;
-                } else {
-                    if (prev <= 10) setScanDirection('down');
-                    return prev - 2;
+    useEffect(() => {
+        if (!isProcessing) return undefined;
+
+        const interval = window.setInterval(() => {
+            setProgress((current) => current >= 92 ? current : Math.min(current + 2, 92));
+        }, 100);
+
+        return () => window.clearInterval(interval);
+    }, [isProcessing]);
+
+    useEffect(() => {
+        if (!isProcessing) return undefined;
+
+        const interval = window.setInterval(() => {
+            setScanPosition((current) => {
+                const next = current + scanDirection * 1.8;
+
+                if (next >= 88) {
+                    setScanDirection(-1);
+                    return 88;
                 }
+
+                if (next <= 8) {
+                    setScanDirection(1);
+                    return 8;
+                }
+
+                return next;
             });
         }, 30);
 
-        return () => {
-            clearInterval(progressInterval);
-            clearInterval(scanInterval);
-        };
-    }, [scanDirection]);
-    const analysisSteps = [
-        {
-            threshold: 25,
-            title: 'Mengenali jenis material',
-            description: 'Semen PCC Portland teridentifikasi secara akurat'
-        },
-        {
-            threshold: 50,
-            title: 'Memeriksa kondisi fisik',
-            description: 'Kemasan kering, tidak membeku / menggumpal'
-        },
-        {
-            threshold: 75,
-            title: 'Mengestimasi jumlah & tonase',
-            description: 'Menghitung 4 sak standar semen curah teratur'
-        },
-        {
-            threshold: 100,
-            title: 'Menganalisis potensi fasum terdekat',
-            description: 'Menunggu kalkulasi berat final'
-        }
-    ];
+        return () => window.clearInterval(interval);
+    }, [isProcessing, scanDirection]);
 
-    const isComplete = progress === 100;
+    const analysisStates = useMemo(() => {
+        const thresholds = [25, 50, 75, 100];
+
+        return ANALYSIS_STEPS.map((step, index) => ({
+            ...step,
+            completed: isSuccess || progress >= thresholds[index],
+            active: isProcessing && progress >= thresholds[index] - 25
+        }));
+    }, [isProcessing, isSuccess, progress]);
+
+    const handleNext = useCallback(() => {
+        if (!isSuccess || !analysis) return;
+
+        onNext?.({
+            ...imagePayload,
+            aiData: analysis,
+            analysis,
+            finalData: analysis
+        });
+    }, [analysis, imagePayload, isSuccess, onNext]);
 
     return (
-        <div className="min-h-screen bg-[#FAF9F7] font-sans pb-20">
-            {/* Header & Stepper */}
-            <div className="pt-8 pb-10">
-                <div className="max-w-[1200px] mx-auto px-6">
-                    <p className="text-[11px] font-bold text-gray-500 mb-6">Beranda &gt; Tambah Material &gt; <span className="text-gray-900">Analisis AI</span></p>
+        <main className="min-h-screen bg-[#FCFAF8] pb-24 text-gray-900">
+            <div className="mx-auto w-full max-w-[1180px] px-7 pb-10 pt-6">
+                <Breadcrumb />
+                <StepNavigation />
 
-                    {/* Stepper Tahap 2 */}
-                    <div className="flex items-center justify-center gap-4">
-                        <div className="flex items-center gap-2 bg-gray-100 text-gray-500 px-4 py-2 rounded-full border border-gray-200">
-                            <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                                <Check className="w-2.5 h-2.5" />
-                            </span>
-                            <span className="text-[11px] font-bold">Foto Material</span>
-                        </div>
-                        <div className="w-8 h-[1px] bg-gray-300"></div>
-                        <div className="flex items-center gap-2 bg-[#FFCC00] px-5 py-2 rounded-full shadow-sm">
-                            <span className="text-[10px] font-black text-gray-900">02</span>
-                            <span className="text-[11px] font-bold text-gray-900">Analisis AI</span>
-                        </div>
-                        <div className="w-8 h-[1px] bg-gray-300"></div>
-                        <div className="flex items-center gap-2 text-gray-400">
-                            <span className="text-[10px] font-black">03</span>
-                            <span className="text-[11px] font-bold">Konfirmasi</span>
-                        </div>
-                        <div className="w-8 h-[1px] bg-gray-300"></div>
-                        <div className="flex items-center gap-2 text-gray-400">
-                            <span className="text-[10px] font-black">04</span>
-                            <span className="text-[11px] font-bold">Distribusi</span>
-                        </div>
-                    </div>
+                <div className="mt-8 grid grid-cols-[1.48fr_1fr] items-start gap-5">
+                    <section className="min-w-0">
+                        <MaterialPreview
+                            imageUrl={imageUrl}
+                            analysis={analysis}
+                            isProcessing={isProcessing}
+                            isSuccess={isSuccess}
+                            isError={isError}
+                            error={error}
+                            scanPosition={scanPosition}
+                            onRetry={runAnalysis}
+                        />
+
+                        <MaterialStats analysis={analysis} />
+                    </section>
+
+                    <section className="min-w-0 space-y-4">
+                        <AiProcessCard
+                            progress={progress}
+                            isProcessing={isProcessing}
+                            isSuccess={isSuccess}
+                            analysis={analysis}
+                            states={analysisStates}
+                        />
+
+                        <DetectionCard analysis={analysis} isSuccess={isSuccess} />
+
+                        <TransparencyCard />
+                    </section>
                 </div>
             </div>
 
-            {/* Layout Utama */}
-            <div className="max-w-[1200px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <BottomActions
+                isProcessing={isProcessing}
+                isSuccess={isSuccess}
+                onBack={onBack}
+                onNext={handleNext}
+            />
+        </main>
+    );
+}
 
-                {/* KOLOM KIRI (Visual AI & Quick Facts) */}
-                <div className="lg:col-span-7 space-y-6">
-                    {/* Frame Foto AI */}
-                    <div className="bg-white rounded-[24px] p-3 shadow-sm border border-gray-100">
-                        <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-gray-900">
-                            <img
-                                src={imagePayload?.url || "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=800"}
-                                alt="Material dianalisis"
-                                className={`w-full h-full object-cover transition-all duration-700 ${isComplete ? 'scale-100' : 'scale-105'}`}
-                            />
+function Breadcrumb() {
+    return (
+        <div className="text-[10px] font-medium text-gray-400">
+            <span>Beranda</span>
+            <span className="mx-1.5">›</span>
+            <span>Tambah Material</span>
+            <span className="mx-1.5">›</span>
+            <span className="font-semibold text-gray-600">Analisis AI</span>
+        </div>
+    );
+}
 
-                            {/* Garis Scanner AI (Hanya muncul saat loading) */}
-                            {!isComplete && (
-                                <div
-                                    className="absolute left-0 right-0 h-16 bg-gradient-to-b from-transparent to-[#FFCC00]/40 border-b-2 border-[#FFCC00] z-10 pointer-events-none"
-                                    style={{ top: `${scanPosition}%`, transition: 'top 0.1s linear' }}
-                                ></div>
-                            )}
+function StepNavigation() {
+    return (
+        <div className="mt-5 flex justify-center">
+            <div className="flex items-center rounded-full bg-[#F0EEEC] p-1">
+                {STEPS.map((step, index) => {
+                    const active = step.id === 'analysis';
+                    const completed = step.id === 'photo';
 
-                            {/* Frame Corners Kuning */}
-                            <div className="absolute top-4 left-4 w-8 h-8 border-t-4 border-l-4 border-[#FFCC00] rounded-tl-lg pointer-events-none"></div>
-                            <div className="absolute top-4 right-4 w-8 h-8 border-t-4 border-r-4 border-[#FFCC00] rounded-tr-lg pointer-events-none"></div>
-                            <div className="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-[#FFCC00] rounded-bl-lg pointer-events-none"></div>
-                            <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-[#FFCC00] rounded-br-lg pointer-events-none"></div>
+                    return (
+                        <React.Fragment key={step.id}>
+                            <div className={`flex items-center gap-2 rounded-full px-4 py-2 transition-all ${active ? 'bg-[#FFCC00] text-gray-900 shadow-sm' : 'text-gray-400'}`}>
+                                <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-black ${active ? 'bg-white/50' : ''}`}>
+                                    {completed ? <Check className="h-3 w-3" /> : step.number}
+                                </span>
 
-                            {/* Overlay Tags (Muncul bertahap berdasarkan progress) */}
-                            <div className={`absolute top-8 left-8 transition-opacity duration-500 ${progress > 25 ? 'opacity-100' : 'opacity-0'}`}>
-                                <div className="bg-white/95 backdrop-blur text-gray-900 text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg border border-gray-100">
-                                    <Check className="w-3.5 h-3.5 text-emerald-600" /> Material: Semen Portland Komposit (PCC)
-                                </div>
+                                <span className={`text-[10px] ${active ? 'font-black' : 'font-semibold'}`}>
+                                    {step.label}
+                                </span>
                             </div>
 
-                            <div className={`absolute top-20 right-8 transition-opacity duration-500 ${progress > 50 ? 'opacity-100' : 'opacity-0'}`}>
-                                <div className="bg-white/95 backdrop-blur text-gray-900 text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg border border-gray-100">
-                                    <Check className="w-3.5 h-3.5 text-emerald-600" /> Kondisi: Kemasan utuh & kering (95%)
-                                </div>
-                            </div>
+                            {index < STEPS.length - 1 && <span className="mx-1 text-[9px] text-gray-300">›</span>}
+                        </React.Fragment>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
 
-                            <div className={`absolute bottom-20 left-8 transition-opacity duration-500 ${progress > 75 ? 'opacity-100' : 'opacity-0'}`}>
-                                <div className="bg-white/95 backdrop-blur text-gray-900 text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg border border-gray-100">
-                                    <span className="w-2 h-2 rounded-full bg-[#FFCC00]"></span> Estimasi: ~160 kg (4 Sak @40kg)
-                                </div>
-                            </div>
-
-                            <div className={`absolute bottom-8 right-8 transition-opacity duration-500 ${isComplete ? 'opacity-100' : 'opacity-0'}`}>
-                                <div className="bg-emerald-500/95 backdrop-blur text-white text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg border border-emerald-400">
-                                    <Zap className="w-3.5 h-3.5 text-yellow-300" /> Potensi Redistribusi Tinggi (Fasum)
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Footer Image Bar */}
-                        <div className="flex justify-between items-center px-2 pt-3 pb-1">
-                            <p className="text-[9px] font-bold text-gray-500">
-                                <span className="text-emerald-600">ON</span> VisionEngine v3.4-1D • Kamera Proyek 12MP • Terkalibrasi
-                            </p>
-                            <span className="bg-emerald-50 text-emerald-700 text-[9px] font-black px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
-                                <ShieldCheck className="w-3 h-3" /> Skor Sirkular: 92/100
-                            </span>
-                        </div>
+function MaterialPreview({ imageUrl, analysis, isProcessing, isSuccess, isError, error, scanPosition, onRetry }) {
+    return (
+        <div className="rounded-[20px] border border-[#EEEAE6] bg-white p-3 shadow-[0_5px_22px_rgba(30,30,30,0.04)]">
+            <div className="relative aspect-[1.55/1] overflow-hidden rounded-[15px] bg-gray-100">
+                {imageUrl ? (
+                    <img
+                        src={imageUrl}
+                        alt="Material"
+                        className={`h-full w-full object-cover transition-all duration-700 ${isProcessing ? 'scale-[1.015]' : 'scale-100'}`}
+                    />
+                ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                        Foto tidak tersedia
                     </div>
+                )}
 
-                    {/* Quick Facts Bottom Cards */}
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1">Brand Terbaca</p>
-                            <h4 className="text-sm font-black text-gray-900">Cemex PCC</h4>
-                            <p className="text-[10px] font-medium text-emerald-600 mt-0.5">Standar SNI 15-7064</p>
+                <ImageCorners />
+
+                {isProcessing && (
+                    <>
+                        <div
+                            className="absolute left-0 right-0 z-20 h-1 bg-[#FFCC00] shadow-[0_0_15px_rgba(255,204,0,0.95)]"
+                            style={{ top: `${scanPosition}%` }}
+                        />
+
+                        <div
+                            className="absolute left-0 right-0 z-10 h-20 bg-gradient-to-b from-transparent via-[#FFCC00]/10 to-transparent"
+                            style={{ top: `calc(${scanPosition}% - 40px)` }}
+                        />
+
+                        <div className="absolute inset-0 z-30 flex items-center justify-center">
+                            <div className="flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-[11px] font-bold text-white backdrop-blur-md">
+                                <span className="h-2 w-2 animate-pulse rounded-full bg-[#FFCC00]" />
+                                Menganalisis foto...
+                            </div>
                         </div>
-                        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1">Kemasan Fisik</p>
-                            <h4 className="text-sm font-black text-gray-900">Zak Kertas Kraft</h4>
-                            <p className="text-[10px] font-medium text-gray-500 mt-0.5">Palet kayu terpal</p>
-                        </div>
-                        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1">Tingkat Kelayakan</p>
-                            <h4 className="text-sm font-black text-emerald-600">Layak Pakai 100%</h4>
-                            <p className="text-[10px] font-medium text-gray-500 mt-0.5">Bebas gumpalan air</p>
-                        </div>
-                    </div>
+                    </>
+                )}
+
+                {isSuccess && analysis && (
+                    <>
+                        <ImageBadge position="left-5 top-5" variant="white" icon={<Check />}>
+                            Material: {getShortName(analysis.nama_material)}
+                        </ImageBadge>
+
+                        <ImageBadge position="right-5 top-5" variant="white" icon={<CircleCheck />}>
+                            Kondisi: {analysis.kondisi_barang}
+                        </ImageBadge>
+
+                        <ImageBadge position="bottom-5 left-5" variant="yellow" icon={<Weight />}>
+                            Estimasi ~{formatWeight(analysis.bobot)}
+                        </ImageBadge>
+
+                        <ImageBadge position="bottom-5 right-5" variant="green" icon={<Target />}>
+                            Potensi Redistribusi Tinggi
+                        </ImageBadge>
+                    </>
+                )}
+
+                {isError && (
+                    <ErrorOverlay error={error} onRetry={onRetry} />
+                )}
+            </div>
+
+            <div className="flex items-center justify-between px-2 pt-3">
+                <div className="flex items-center gap-1.5 text-[9px] font-medium text-gray-500">
+                    <MapPin className="h-3.5 w-3.5 text-emerald-600" />
+                    Foto lokasi aktif
                 </div>
 
-                {/* KOLOM KANAN (Proses & Hasil) */}
-                <div className="lg:col-span-5 space-y-5">
-
-                    {/* Status Box */}
-                    <div className="rounded-[22px] border border-[#E7E3DD] bg-white p-5 shadow-[0_5px_18px_rgba(30,25,15,0.05)]">
-                        <div className="mb-4 flex items-center justify-between">
-                            <div className="inline-flex items-center gap-1.5 rounded-full border border-[#F0DF99] bg-[#FFF8D8] px-3 py-1.5 text-[8px] font-black text-[#6E5D00]">
-                                <Cpu className="h-3.5 w-3.5" />
-                                COMPUTER VISION AKTIF
-                            </div>
-
-                            {!isComplete && (
-                                <span className="animate-pulse text-[8px] font-bold text-[#8E8980]">
-                                    Estimasi ~2 Detik Lagi
-                                </span>
-                            )}
-                        </div>
-
-                        <div className="mb-5">
-                            <h2 className="max-w-[390px] text-[22px] font-black leading-[1.12] tracking-[-0.6px] text-[#25231F]">
-                                {isComplete ? 'Analisis AI Selesai!' : 'AI Sisain sedang menganalisis foto materialmu...'}
-                            </h2>
-
-                            <p className="mt-2 max-w-[430px] text-[10px] font-medium leading-[1.65] text-[#777269]">
-                                Sistem computer vision kami mengidentifikasi spesifikasi sisa konstruksi untuk mencocokkannya ke proyek perbaikan fasilitas warga terdekat.
-                            </p>
-                        </div>
-
-                        <div className="mb-5">
-                            <div className="mb-1.5 flex items-center justify-between text-[8px] font-black">
-                                <span className="text-[#7E796F]">Pemindaian visual awal</span>
-                                <span className="text-[#27241F]">{progress}% Selesai</span>
-                            </div>
-
-                            <div className="h-3 overflow-hidden rounded-full bg-[#ECEAE7] p-[2px]">
-                                <div
-                                    className="h-full rounded-full bg-[#FFCC00] transition-[width] duration-300 ease-out"
-                                    style={{ width: `${progress}%` }}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            {analysisSteps.map((step, index) => {
-                                const isCompleted = progress >= step.threshold;
-                                const previousThreshold = analysisSteps[index - 1]?.threshold ?? 0;
-                                const isActive = progress >= previousThreshold && progress < step.threshold;
-
-                                return (
-                                    <div
-                                        key={step.title}
-                                        className={`flex gap-2.5 rounded-[13px] border px-2.5 py-2.5 transition-all duration-500 ease-out ${isCompleted
-                                                ? 'border-transparent bg-[#F3F3F1]'
-                                                : isActive
-                                                    ? 'border-[#FFCF27] bg-[#FFF8D8] shadow-[0_3px_10px_rgba(255,204,0,0.12)]'
-                                                    : 'border-transparent bg-[#FAFAF9]'
-                                            }`}
-                                    >
-                                        <div className="flex shrink-0 items-start pt-0.5">
-                                            {isCompleted ? (
-                                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#008463] text-white transition-all duration-500">
-                                                    <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                                                </div>
-                                            ) : isActive ? (
-                                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FFCC00] shadow-[0_0_0_4px_rgba(255,204,0,0.12)] transition-all duration-500">
-                                                    <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#27241F]" />
-                                                </div>
-                                            ) : (
-                                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#F0EFEC] text-[8px] font-black text-[#B1ADA5]">
-                                                    {index + 1}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="min-w-0 flex-1">
-                                            <h4 className={`text-[10px] font-black leading-tight transition-colors duration-500 ${isCompleted || isActive ? 'text-[#302E29]' : 'text-[#A8A49C]'
-                                                }`}>
-                                                {step.title}
-                                            </h4>
-
-                                            <p className={`mt-0.5 text-[8.5px] font-medium leading-[1.45] transition-colors duration-500 ${isCompleted
-                                                    ? 'text-[#008463]'
-                                                    : isActive
-                                                        ? 'text-[#806F1A]'
-                                                        : 'text-[#ACA79F]'
-                                                }`}>
-                                                {isComplete && index === 3 ? '2 fasum ditemukan dalam radius 3 km' : step.description}
-                                            </p>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                    {/* Preview Deteksi (Muncul setelah selesai/isComplete) */}
-                    <div className={`bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 transition-all duration-500 ${isComplete ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                        <div className="flex justify-between items-center mb-5">
-                            <h3 className="font-black text-gray-900 flex items-center gap-2">
-                                <Zap className="w-4 h-4 text-yellow-500" /> Pratinjau Hasil Deteksi
-                            </h3>
-                            <span className="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-1 rounded-md">Draf Otomatis</span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 mb-4">
-                            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                                <p className="text-[9px] text-gray-500 mb-0.5">Kategori</p>
-                                <p className="text-[11px] font-black text-gray-900">Semen & Perekat</p>
-                            </div>
-                            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                                <p className="text-[9px] text-gray-500 mb-0.5">Estimasi Bobot</p>
-                                <p className="text-[11px] font-black text-gray-900">~160 Kg</p>
-                            </div>
-                        </div>
-
-                        <div className="bg-[#F0FDF4] rounded-xl p-3 flex gap-3 items-center mb-4 border border-emerald-100">
-                            <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center shrink-0">
-                                <Leaf className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                                <h4 className="text-[10px] font-black text-emerald-800">Pencegahan Emisi Karbon</h4>
-                                <p className="text-[9px] text-emerald-600/90 leading-tight mt-0.5">Redistribusi material ini menghemat est. <strong>~0.33 ton CO2e</strong> dari produksi semen baru.</p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <p className="text-[9px] font-bold text-gray-500 mb-2">Potensi Penerima terdekat:</p>
-                            <div className="space-y-1.5">
-                                <div className="bg-gray-50 rounded-lg p-2.5 flex items-center gap-2 border border-gray-100">
-                                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span className="text-[10px] font-semibold text-gray-700">Perbaikan Jalan Gang RT 03 Candisari (1.2 km)</span>
-                                </div>
-                                <div className="bg-gray-50 rounded-lg p-2.5 flex items-center gap-2 border border-gray-100">
-                                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span className="text-[10px] font-semibold text-gray-700">Renovasi Tempat Wudhu Musala Al-Ikhlas (2.4 km)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Disclaimer & Buttons */}
-                    <div className={`transition-all duration-500 delay-300 ${isComplete ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                        <div className="bg-[#FFFDF5] border border-yellow-200/60 rounded-xl p-3 flex gap-3 mb-5">
-                            <AlertCircle className="w-4 h-4 text-yellow-600 shrink-0 mt-0.5" />
-                            <p className="text-[9px] text-gray-600 leading-relaxed">
-                                <strong className="text-gray-900">Catatan Transparansi:</strong> Hasil analisis ini merupakan estimasi awal berbasis citra visual AI, bukan kajian teknis profesional struktural. Kamu tetap dapat mengoreksi jumlah, satuan, dan detail spesifikasi pada langkah konfirmasi berikutnya.
-                            </p>
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={onBack}
-                                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-3.5 rounded-full flex items-center justify-center gap-2 transition-colors border border-gray-200"
-                            >
-                                <RotateCcw className="w-4 h-4" /> Unggah Foto Ulang
-                            </button>
-                            <button
-                                onClick={() => onNext({ category: 'Semen & Perekat', weight: 160 })}
-                                className="flex-[1.5] bg-[#FFCC00] hover:bg-yellow-400 text-gray-900 text-xs font-black py-3.5 rounded-full flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-md"
-                            >
-                                Lanjut ke Konfirmasi Data (Hasil Siap) <ArrowRight className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
-
+                <div className="flex items-center gap-2 text-[9px] text-gray-400">
+                    <span>Kamera Depan</span>
+                    <span>•</span>
+                    <span>Estimasi AI</span>
                 </div>
             </div>
         </div>
+    );
+}
+
+function ImageCorners() {
+    const corners = [
+        'left-4 top-4 border-l-2 border-t-2 rounded-tl-md',
+        'right-4 top-4 border-r-2 border-t-2 rounded-tr-md',
+        'bottom-4 left-4 border-b-2 border-l-2 rounded-bl-md',
+        'bottom-4 right-4 border-b-2 border-r-2 rounded-br-md'
+    ];
+
+    return (
+        <div className="pointer-events-none absolute inset-0 z-10">
+            {corners.map((corner) => (
+                <span key={corner} className={`absolute h-6 w-6 border-[#FFCC00] ${corner}`} />
+            ))}
+        </div>
+    );
+}
+
+function ImageBadge({ position, variant, icon, children }) {
+    const variants = {
+        white: 'bg-white/95 text-gray-900',
+        yellow: 'border border-[#E8BA00] bg-[#FFCC00]/95 text-gray-900',
+        green: 'border border-emerald-300 bg-emerald-100/95 text-emerald-800'
+    };
+
+    return (
+        <div className={`absolute ${position} z-30 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[9px] font-black shadow-sm backdrop-blur ${variants[variant]}`}>
+            {React.cloneElement(icon, { className: 'h-3 w-3' })}
+            <span>{children}</span>
+        </div>
+    );
+}
+
+function ErrorOverlay({ error, onRetry }) {
+    return (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/45 px-8 backdrop-blur-[2px]">
+            <div className="w-full max-w-[290px] rounded-[18px] bg-white p-6 text-center shadow-2xl">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-red-50">
+                    <CircleAlert className="h-5 w-5 text-red-500" />
+                </div>
+
+                <h3 className="mt-3 text-sm font-black text-gray-900">
+                    Analisis gagal
+                </h3>
+
+                <p className="mt-2 text-[11px] leading-relaxed text-gray-500">
+                    {error || 'AI tidak dapat memproses foto material.'}
+                </p>
+
+                <button
+                    type="button"
+                    onClick={onRetry}
+                    className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#FFCC00] px-5 py-2.5 text-[10px] font-black text-gray-900 transition hover:bg-[#F2BF00]"
+                >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Coba Lagi
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function MaterialStats({ analysis }) {
+    const confidence = formatConfidence(analysis?.confidence);
+
+    return (
+        <div className="mt-3 grid grid-cols-3 gap-3">
+            <StatCard
+                label="Brand Terdeteksi"
+                value={analysis?.nama_material || 'Cemex PCC'}
+                detail={analysis?.kategori || 'Semen PCC'}
+            />
+
+            <StatCard
+                label="Keadaan Fisik"
+                value={analysis?.kondisi_barang || 'Layak Kertas Kraft'}
+                detail="Kondisi material terdeteksi"
+            />
+
+            <StatCard
+                label="Tingkat Kelayakan"
+                value={analysis?.kelayakan || 'Layak Pakai 100%'}
+                detail={confidence ? `Confidence ${confidence}` : 'Bebas digunakan'}
+                positive
+            />
+        </div>
+    );
+}
+
+function StatCard({ label, value, detail, positive }) {
+    return (
+        <div className="min-w-0 rounded-[13px] border border-[#EEEAE6] bg-white px-4 py-3">
+            <p className="text-[8px] font-bold uppercase tracking-wide text-gray-400">
+                {label}
+            </p>
+
+            <p className={`mt-1.5 truncate text-[12px] font-black ${positive ? 'text-emerald-600' : 'text-gray-800'}`}>
+                {value}
+            </p>
+
+            <p className="mt-1 truncate text-[8px] font-medium text-gray-400">
+                {detail}
+            </p>
+        </div>
+    );
+}
+
+function AiProcessCard({ progress, isSuccess, analysis, states }) {
+    return (
+        <div className="rounded-[17px] border border-[#EEEAE6] bg-white p-5 shadow-[0_4px_18px_rgba(30,30,30,0.03)]">
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-[#FFF6C9] px-2.5 py-1 text-[8px] font-black uppercase tracking-wide text-[#876900]">
+                            AI Computer Vision Aktif
+                        </span>
+
+                        <span className="text-[8px] font-medium text-gray-400">
+                            {isSuccess ? 'Analisis selesai' : 'Tahap 2 dari 4'}
+                        </span>
+                    </div>
+
+                    <h2 className="mt-2.5 text-[17px] font-black leading-tight text-gray-900">
+                        AI Sedang menganalisis foto materialmu...
+                    </h2>
+
+                    <p className="mt-2 text-[9px] leading-[1.6] text-gray-500">
+                        Sistem computer vision kami mengidentifikasi spesifikasi sisa konstruksi untuk mencocokkannya ke proyek perbaikan fasilitas warga terdekat.
+                    </p>
+                </div>
+            </div>
+
+            <ProgressBar progress={progress} />
+
+            <div className="mt-4 space-y-2">
+                {states.map((item) => (
+                    <AnalysisStep key={item.id} item={item} analysis={analysis} />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function ProgressBar({ progress }) {
+    return (
+        <div className="mt-4">
+            <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+                <div
+                    className="h-full rounded-full bg-[#E5B900] transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                />
+            </div>
+
+            <div className="mt-1.5 flex justify-between text-[8px]">
+                <span className="text-gray-400">Pemindaian visual awal</span>
+                <span className="font-bold text-gray-600">{progress}% Selesai</span>
+            </div>
+        </div>
+    );
+}
+
+function AnalysisStep({ item, analysis }) {
+    const Icon = item.icon;
+
+    const descriptions = {
+        material: analysis?.nama_material
+            ? `${analysis.nama_material} teridentifikasi secara akurat`
+            : 'Mengenali jenis material dari foto',
+
+        condition: analysis?.kondisi_barang
+            ? `Kondisi ${analysis.kondisi_barang.toLowerCase()} teridentifikasi`
+            : 'Memeriksa kondisi fisik material',
+
+        weight: analysis?.bobot
+            ? `Estimasi ${formatWeight(analysis.bobot)}`
+            : 'Mengestimasi jumlah & bobot',
+
+        matching: analysis
+            ? 'Menganalisis potensi distribusi material'
+            : 'Menganalisis potensi fasum terdekat'
+    };
+
+    return (
+        <div className={`rounded-[9px] px-3 py-2.5 ${item.completed ? 'bg-[#F1FAF5]' : item.active ? 'border border-[#FFDB45] bg-[#FFF9DE]' : 'bg-[#FAFAFA]'}`}>
+            <div className="flex items-center gap-2.5">
+                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${item.completed ? 'bg-emerald-100 text-emerald-600' : item.active ? 'bg-[#FFCC00] text-gray-900' : 'bg-gray-100 text-gray-400'}`}>
+                    {item.completed ? (
+                        <Check className="h-3.5 w-3.5" />
+                    ) : item.active ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                        <Icon className="h-3.5 w-3.5" />
+                    )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                    <p className={`text-[9px] font-black ${item.completed || item.active ? 'text-gray-800' : 'text-gray-400'}`}>
+                        {item.label}
+                    </p>
+
+                    <p className={`mt-0.5 truncate text-[8px] ${item.completed ? 'text-emerald-700' : 'text-gray-500'}`}>
+                        {descriptions[item.id]}
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function DetectionCard({ analysis, isSuccess }) {
+    return (
+        <div className="rounded-[17px] border border-[#EEEAE6] bg-white p-5 shadow-[0_4px_18px_rgba(30,30,30,0.03)]">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-[#D5A900]" />
+
+                    <h3 className="text-[12px] font-black text-gray-900">
+                        Pratinjau Hasil Deteksi
+                    </h3>
+                </div>
+
+                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[7px] font-bold text-gray-500">
+                    Draft Otomatis
+                </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2.5">
+                <MiniResult
+                    label="Kategori"
+                    value={analysis?.kategori || 'Semen & Perekat'}
+                />
+
+                <MiniResult
+                    label="Estimasi Bobot"
+                    value={isSuccess ? formatWeight(analysis?.bobot) : '~160 Kg'}
+                />
+            </div>
+
+            <div className="mt-3 rounded-[9px] bg-[#EAF8F1] p-3">
+                <div className="flex items-start gap-2.5">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-700">
+                        <Target className="h-3.5 w-3.5 text-white" />
+                    </div>
+
+                    <div>
+                        <p className="text-[8px] font-black text-emerald-800">
+                            Rekomendasi Sirkular
+                        </p>
+
+                        <p className="mt-1 text-[8px] leading-relaxed text-emerald-700">
+                            {isSuccess
+                                ? `Material ${analysis?.nama_material || 'ini'} berpotensi disalurkan untuk proyek perbaikan fasilitas warga.`
+                                : 'Rekomendasi akan tersedia setelah analisis selesai.'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-4">
+                <p className="text-[8px] font-bold uppercase tracking-wide text-gray-400">
+                    Potensi Penerima Terdekat
+                </p>
+
+                <div className="mt-2 space-y-2">
+                    <LocationRow text="Perbaikan Jalan Gang RT 03" distance="2.4 km" />
+                    <LocationRow text="Renovasi Tempat Wudhu" distance="2.4 km" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function MiniResult({ label, value }) {
+    return (
+        <div className="rounded-[8px] bg-[#FAFAFA] px-3 py-2.5">
+            <p className="text-[8px] font-medium text-gray-400">
+                {label}
+            </p>
+
+            <p className="mt-1 truncate text-[9px] font-black text-gray-800">
+                {value}
+            </p>
+        </div>
+    );
+}
+
+function LocationRow({ text, distance }) {
+    return (
+        <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100">
+                <MapPin className="h-3 w-3 text-gray-500" />
+            </div>
+
+            <span className="min-w-0 flex-1 truncate text-[8px] font-medium text-gray-600">
+                {text}
+            </span>
+
+            <span className="text-[8px] font-bold text-gray-400">
+                {distance}
+            </span>
+        </div>
+    );
+}
+
+function TransparencyCard() {
+    return (
+        <div className="rounded-[13px] border border-[#E7E2D9] bg-[#FFFDF7] px-4 py-3.5">
+            <div className="flex items-start gap-2.5">
+                <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" />
+
+                <p className="text-[8px] leading-[1.6] text-gray-500">
+                    <strong className="font-black text-gray-700">
+                        Catatan Transparansi:
+                    </strong>{' '}
+                    Hasil analisis ini merupakan estimasi awal berbasis citra visual AI, bukan kajian teknis profesional struktural. Kamu tetap dapat memperbaiki jumlah, satuan, dan detail spesifikasi pada langkah berikutnya.
+                </p>
+            </div>
+        </div>
+    );
+}
+
+function BottomActions({ isProcessing, isSuccess, onBack, onNext }) {
+    return (
+        <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#EDE9E5] bg-white/95 px-7 py-4 backdrop-blur-md">
+            <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-5">
+                <button
+                    type="button"
+                    onClick={onBack}
+                    disabled={isProcessing}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#F0EFED] px-5 py-3 text-[9px] font-black text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Ulang Foto
+                </button>
+
+                <button
+                    type="button"
+                    onClick={onNext}
+                    disabled={!isSuccess}
+                    className={`inline-flex min-w-[210px] items-center justify-center gap-3 rounded-full px-6 py-3 text-[9px] font-black transition ${isSuccess ? 'bg-[#FFCC00] text-gray-900 shadow-[0_5px_15px_rgba(255,204,0,0.25)] hover:bg-[#F4C000]' : 'cursor-not-allowed bg-gray-100 text-gray-400'}`}
+                >
+                    <span className="text-center leading-[1.35]">
+                        Lanjut ke Konfirmasi
+                        <br />
+                        Data (Hasil AI)
+                    </span>
+
+                    <ArrowRight className="h-4 w-4" />
+                </button>
+            </div>
+        </footer>
     );
 }

@@ -1,95 +1,445 @@
-import React, { useState } from 'react';
-import FotoMaterialDesktop from '../../components/TambahMaterial/FotoMaterialDesktop'
-import FotoMaterialMobile from '../../components/TambahMaterial/FotoMaterialMobile';
+import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAiRedistribusi } from '../../hooks/useAiRedistribusi';
+
+import FotoMaterialDesktop from '../../components/TambahMaterial/FotoMaterialDesktop';
 import AnalisisAIDesktop from '../../components/TambahMaterial/AnalisisAIDesktop';
-import AnalisisAIMobile from '../../components/TambahMaterial/AnalisisAIMobile';
 import KonfirmasiDesktop from '../../components/TambahMaterial/KonfirmasiDesktop';
-import DistribusiDesktop from '../../components/TambahMaterial/DistribusiDesktop'; 
+import DistribusiDesktop from '../../components/TambahMaterial/DistribusiDesktop';
+import AiMatchDesktop from '../../components/TambahMaterial/AiMatchDesktop';
+import DetailKebutuhanDesktop from '../../components/TambahMaterial/DetailKebutuhanDesktop';
+import KonfirmasiPengirimanDesktop from '../../components/TambahMaterial/KonfirmasiPengirimanDesktop';
+import LacakPengirimanDesktop from '../../components/TambahMaterial/LacakPengirimanDesktop';
+
+import FotoMaterialMobile from '../../components/TambahMaterial/FotoMaterialMobile';
+import AnalisisAIMobile from '../../components/TambahMaterial/AnalisisAIMobile';
+import KonfirmasiMobile from '../../components/TambahMaterial/KonfirmasiMobile';
+import DistribusiMobile from '../../components/TambahMaterial/DistribusiMobile';
+import AiMatchMobile from '../../components/TambahMaterial/AiMatchMobile';
+import DetailKebutuhanMobile from '../../components/TambahMaterial/DetailKebutuhanMobile';
+import KonfirmasiPengirimanMobile from '../../components/TambahMaterial/KonfirmasiPengirimanMobile';
+import LacakPengirimanMobile from '../../components/TambahMaterial/LacakPengirimanMobile';
+
+const INITIAL_STEP = 1;
+const ENABLE_AI_MATCH_DEMO = true;
+const DEMO_MODE = true;
 
 export default function ProsesTambahMaterial() {
-    const [step, setStep] = useState(1);
+    const navigate = useNavigate();
+
+    const {
+        analyzeImage,
+        submitDistribusi,
+        isLoading: isAILoading,
+        isSubmitting
+    } = useAiRedistribusi();
+
+    const [step, setStep] = useState(INITIAL_STEP);
     const [imagePayload, setImagePayload] = useState(null);
     const [hasilAI, setHasilAI] = useState(null);
-    const [finalData, setFinalData] = useState(null); // Menyimpan data final terkonfirmasi
-    const [isAILoading, setIsAILoading] = useState(false);
+    const [finalData, setFinalData] = useState(null);
+    const [selectedProject, setSelectedProject] = useState(null);
+    const [deliveryData, setDeliveryData] = useState(null);
+    const [trackingId, setTrackingId] = useState(null);
 
-    const handleKirimKeAI = async (payload) => {
+    const goToStep = useCallback((nextStep) => {
+        setStep(nextStep);
+    }, []);
+
+    const handleKirimKeAI = useCallback(async (payload) => {
+        if (!payload) return;
+
         setImagePayload(payload);
-        setStep(2);
-        setIsAILoading(true);
+        setHasilAI(null);
+        setFinalData(null);
+        setSelectedProject(null);
+        setDeliveryData(null);
+        setTrackingId(null);
+        goToStep(2);
 
-        if (payload.isSimulated || !payload.file) {
-            setTimeout(() => {
-                setHasilAI({ 
-                    category: 'Semen Portland Composite (PCC)', 
-                    weight: 160,
-                    quantity: 4,
-                    condition: 'Grade A',
-                    location: 'Jl. Pandanaran No. 42, Candisari, Semarang'
-                });
-                setIsAILoading(false);
-            }, 2400);
+        try {
+            const result = await analyzeImage(payload);
+            setHasilAI(result);
+        } catch {
+            setHasilAI(null);
+        }
+    }, [analyzeImage, goToStep]);
+
+    const handleLanjutKonfirmasi = useCallback((data) => {
+        const analysisData = data?.finalData ?? data?.analysis ?? data?.aiData ?? data ?? {};
+
+        setFinalData((current) => ({
+            ...(current || {}),
+            ...(hasilAI || {}),
+            ...analysisData
+        }));
+
+        goToStep(3);
+    }, [goToStep, hasilAI]);
+
+    const handleLanjutDistribusi = useCallback((data) => {
+        setFinalData((current) => ({
+            ...(current || {}),
+            ...(data || {})
+        }));
+
+        goToStep(4);
+    }, [goToStep]);
+
+    const handleSelesaiDistribusi = useCallback((distributionData) => {
+        const mergedData = {
+            ...(finalData || {}),
+            ...(distributionData || {})
+        };
+
+        const mode = distributionData?.jalur_distribusi
+            ?? distributionData?.distribution_mode
+            ?? distributionData?.metode_distribusi
+            ?? 'donasi';
+
+        setFinalData(mergedData);
+
+        if (mode === 'p2p') {
+            navigate('/maps', {
+                state: {
+                    mode: 'p2p',
+                    source: 'tambah-material',
+                    materialData: mergedData,
+                    imagePayload
+                }
+            });
+
+            return;
+        }
+
+        goToStep(5);
+    }, [finalData, goToStep, imagePayload, navigate]);
+
+    const handlePilihProyek = useCallback((project) => {
+        if (!project) return;
+
+        setSelectedProject(project);
+
+        setFinalData((current) => ({
+            ...(current || {}),
+            project_id: project?.id ?? project?.project_id ?? null,
+            selected_project: project
+        }));
+
+        goToStep(6);
+    }, [goToStep]);
+
+    const handleLanjutPengiriman = useCallback((data) => {
+        setFinalData((current) => ({
+            ...(current || {}),
+            ...(data || {})
+        }));
+
+        goToStep(7);
+    }, [goToStep]);
+
+    const handleSubmitSemuaData = useCallback(async (dataPengiriman) => {
+        setDeliveryData(dataPengiriman);
+
+        const namaPemilik = [
+            profile?.first_name,
+            profile?.last_name
+        ]
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+
+        const noHp = profile?.no_tlp ?? '';
+        const alamatPemilik = profile?.alamat ?? '';
+
+        const mergedFinalData = {
+            ...(finalData || {}),
+            nama_pemilik: namaPemilik,
+            namaPemilik,
+            no_hp: noHp,
+            no_tlp: noHp,
+            alamat: finalData?.alamat || alamatPemilik
+        };
+
+        console.log('=== KONFIRMASI PENGIRIMAN ===');
+        console.log({
+            demoMode: DEMO_MODE,
+            dataPengiriman,
+            finalData: mergedFinalData,
+            selectedProject,
+            profile
+        });
+
+        if (DEMO_MODE) {
+            const demoTrackingId = `SISAIN-DEMO-${Date.now()
+                .toString()
+                .slice(-6)}`;
+
+            const demoDeliveryData = {
+                ...dataPengiriman,
+                demo_mode: true,
+                tracking_id: demoTrackingId
+            };
+
+            setFinalData({
+                ...mergedFinalData,
+                ...demoDeliveryData
+            });
+
+            setDeliveryData(demoDeliveryData);
+            setTrackingId(demoTrackingId);
+            goToStep(8);
+
             return;
         }
 
         try {
-            const formData = new FormData();
-            formData.append('image', payload.file);
-            const response = await fetch('http://localhost:8000/api/ai/analyze/', { method: 'POST', body: formData });
-            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-            const data = await response.json();
-            setHasilAI(data);
+            const result = await submitDistribusi({
+                finalData: mergedFinalData,
+                selectedProject,
+                deliveryData: dataPengiriman,
+                imagePayload,
+                profile
+            });
+
+            console.log('=== RESPONSE DISTRIBUSI ===');
+            console.log(result);
+
+            const trackingId =
+                result?.tracking_id ??
+                result?.trackingId ??
+                result?.id ??
+                result?.data?.tracking_id ??
+                result?.data?.id;
+
+            setFinalData(mergedFinalData);
+            setTrackingId(trackingId ? String(trackingId) : null);
+
+            goToStep(8);
         } catch (error) {
-            console.error('Gagal diproses AI:', error);
-            setHasilAI({ category: 'Semen Portland Composite (PCC)', weight: 160, quantity: 4, condition: 'Grade A' });
-        } finally {
-            setIsAILoading(false);
+            console.error('=== ERROR DISTRIBUSI ===');
+            console.error(error);
+            console.error('message:', error?.message);
+            console.error('status:', error?.status);
+            console.error('data:', error?.data);
+
+            window.alert(
+                error?.message ||
+                'Gagal menyimpan data distribusi.'
+            );
+        }
+    }, [
+        finalData,
+        imagePayload,
+        profile,
+        selectedProject,
+        submitDistribusi,
+        goToStep
+    ]);
+
+    const handleReset = useCallback(() => {
+        setStep(INITIAL_STEP);
+        setImagePayload(null);
+        setHasilAI(null);
+        setFinalData(null);
+        setSelectedProject(null);
+        setDeliveryData(null);
+        setTrackingId(null);
+    }, []);
+
+    const renderDesktop = () => {
+        switch (step) {
+            case 1:
+                return (
+                    <FotoMaterialDesktop
+                        onNextStep={handleKirimKeAI}
+                        isAILoading={isAILoading}
+                    />
+                );
+
+            case 2:
+                return (
+                    <AnalisisAIDesktop
+                        imagePayload={imagePayload}
+                        aiData={hasilAI}
+                        onBack={() => goToStep(1)}
+                        onNext={handleLanjutKonfirmasi}
+                    />
+                );
+
+            case 3:
+                return (
+                    <KonfirmasiDesktop
+                        imagePayload={imagePayload}
+                        finalData={finalData}
+                        onBack={() => goToStep(2)}
+                        onNext={handleLanjutDistribusi}
+                    />
+                );
+
+            case 4:
+                return (
+                    <DistribusiDesktop
+                        imagePayload={imagePayload}
+                        finalData={finalData}
+                        onBack={() => goToStep(3)}
+                        onNext={handleSelesaiDistribusi}
+                    />
+                );
+
+            case 5:
+                return (
+                    <AiMatchDesktop
+                        finalData={finalData}
+                        imagePayload={imagePayload}
+                        enableDemoFallback={ENABLE_AI_MATCH_DEMO}
+                        onBack={() => goToStep(4)}
+                        onNext={handlePilihProyek}
+                    />
+                );
+
+            case 6:
+                return (
+                    <DetailKebutuhanDesktop
+                        projectData={selectedProject}
+                        materialData={finalData}
+                        onBack={() => goToStep(5)}
+                        onNext={handleLanjutPengiriman}
+                    />
+                );
+
+            case 7:
+                return (
+                    <KonfirmasiPengirimanDesktop
+                        finalData={finalData}
+                        projectData={selectedProject}
+                        onBack={() => goToStep(6)}
+                        onNext={handleSubmitSemuaData}
+                    />
+                );
+
+            case 8:
+                return (
+                    <LacakPengirimanDesktop
+                        trackingId={trackingId}
+                        finalData={finalData}
+                        projectData={selectedProject}
+                        onBack={handleReset}
+                    />
+                );
+
+            default:
+                return null;
         }
     };
 
-    const handleKembali = (targetStep) => {
-        setStep(targetStep);
-    };
+    const renderMobile = () => {
+        switch (step) {
+            case 1:
+                return (
+                    <FotoMaterialMobile
+                        onNextStep={handleKirimKeAI}
+                        isAILoading={isAILoading}
+                    />
+                );
 
-    const handleLanjutKonfirmasi = (dataAI) => {
-        setHasilAI(dataAI);
-        setStep(3);
-    };
+            case 2:
+                return (
+                    <AnalisisAIMobile
+                        imagePayload={imagePayload}
+                        aiData={hasilAI}
+                        onBack={() => goToStep(1)}
+                        onNext={handleLanjutKonfirmasi}
+                    />
+                );
 
-    const handleLanjutDistribusi = (verifiedData) => {
-        setFinalData(verifiedData);
-        setStep(4);
-    };
+            case 3:
+                return (
+                    <KonfirmasiMobile
+                        imagePayload={imagePayload}
+                        finalData={finalData}
+                        onBack={() => goToStep(2)}
+                        onNext={handleLanjutDistribusi}
+                    />
+                );
 
-    const handleSelesaiPencarian = (jalurDistribusi) => {
-        console.log("Mulai pencarian via jalur:", jalurDistribusi, "dengan data:", finalData);
-        // TODO: Arahkan ke halaman loading pencarian fasum/warga atau submit ke backend
-        alert(`Mencari target via jalur: ${jalurDistribusi}`);
+            case 4:
+                return (
+                    <DistribusiMobile
+                        imagePayload={imagePayload}
+                        finalData={finalData}
+                        onBack={() => goToStep(3)}
+                        onNext={handleSelesaiDistribusi}
+                    />
+                );
+
+            case 5:
+                return (
+                    <AiMatchMobile
+                        finalData={finalData}
+                        imagePayload={imagePayload}
+                        onBack={() => goToStep(4)}
+                        onNext={handlePilihProyek}
+                    />
+                );
+
+            case 6:
+                return (
+                    <DetailKebutuhanMobile
+                        projectData={selectedProject}
+                        materialData={finalData}
+                        onBack={() => goToStep(5)}
+                        onNext={handleLanjutPengiriman}
+                    />
+                );
+
+            case 7:
+                return (
+                    <KonfirmasiPengirimanMobile
+                        finalData={finalData}
+                        projectData={selectedProject}
+                        onBack={() => goToStep(6)}
+                        onNext={handleSubmitSemuaData}
+                    />
+                );
+
+            case 8:
+                return (
+                    <LacakPengirimanMobile
+                        trackingId={trackingId}
+                        onBack={handleReset}
+                    />
+                );
+
+            default:
+                return null;
+        }
     };
 
     return (
-        <div>
-            {/* TAMPILAN DESKTOP */}
+        <div className="min-h-screen">
+            {isSubmitting && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 px-6 backdrop-blur-sm">
+                    <div className="text-center">
+                        <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-[#FFCC00]" />
+
+                        <h3 className="text-lg font-black text-gray-900">
+                            Memproses Rantai Sirkular...
+                        </h3>
+
+                        <p className="mt-1 text-xs font-medium text-gray-500">
+                            Menyimpan data, gambar, kebutuhan, dan pengiriman.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             <div className="hidden lg:block">
-                {step === 1 && <FotoMaterialDesktop onNextStep={handleKirimKeAI} />}
-                {step === 2 && <AnalisisAIDesktop imagePayload={imagePayload} onBack={() => handleKembali(1)} onNext={handleLanjutKonfirmasi} />}
-                {step === 3 && <KonfirmasiDesktop imagePayload={imagePayload} aiData={hasilAI} onBack={() => handleKembali(2)} onNext={handleLanjutDistribusi} />}
-                {step === 4 && (
-                    <DistribusiDesktop 
-                        imagePayload={imagePayload} 
-                        finalData={finalData} 
-                        onBack={() => handleKembali(3)} 
-                        onNext={handleSelesaiPencarian} 
-                    />
-                )}
+                {renderDesktop()}
             </div>
 
-            {/* TAMPILAN MOBILE (Placeholder) */}
             <div className="block lg:hidden">
-                {step === 1 && <FotoMaterialMobile onNextStep={handleKirimKeAI} />}
-                {step === 2 && <AnalisisAIMobile imagePayload={imagePayload} onBack={() => handleKembali(1)} onNext={handleLanjutKonfirmasi} />}
-                {step === 3 && <div className="p-10 text-center font-bold">Mobile Step 3 (Segera)</div>}
-                {step === 4 && <div className="p-10 text-center font-bold">Mobile Step 4 (Segera)</div>}
+                {renderMobile()}
             </div>
         </div>
     );
