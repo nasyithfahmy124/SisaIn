@@ -25,8 +25,56 @@ const getTabCount = (histories, tab) => {
     return histories.filter(({ type }) => type === 'success').length;
 };
 
-export default function ProfileHistory({ histories = [] }) {
+// URL Backend (Sesuaikan dengan .env jika ada)
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://sisa-in.vercel.app';
+
+// Helper untuk format URL gambar agar tidak pecah
+const getImageUrl = (imagePath) => {
+    if (!imagePath) return '/default-image.jpg';
+    if (imagePath.startsWith('http')) return imagePath;
+    return `${BASE_URL}${imagePath}`;
+};
+
+export default function ProfileHistory({ donations = [], claims = [] }) {
     const [activeTab, setActiveTab] = useState('semua');
+
+    // Memetakan data dari backend ke format UI yang ada
+    const histories = useMemo(() => {
+        // Pemetaan data Material / Donasi
+        const donationHistories = donations.map(item => ({
+            id: `donasi-${item.id}`,
+            type: item.tersedia ? 'active' : 'success', // Jika masih tersedia = berjalan, jika tidak = selesai
+            title: item.nama_material,
+            desc: `Kondisi: ${item.kondisi_barang} • Kategori: ${item.kategori}`,
+            image: getImageUrl(item.image),
+            amount: item.bobot ? `${item.bobot} kg` : '1 Item',
+            status: item.tersedia ? 'Tersedia' : 'Disalurkan',
+            time: new Date(item.created).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+            timestamp: new Date(item.created).getTime(),
+            location: '-', // Data model donasi tidak menyimpan lokasi langsung
+            tags: [item.kategori],
+            actionType: 'arrow'
+        }));
+
+        // Pemetaan data Klaim Barang
+        const claimHistories = claims.map(item => ({
+            id: `klaim-${item.id}`,
+            type: 'success', // Klaim selalu masuk tab selesai
+            title: `Diklaim oleh: ${item.nama_penerima}`,
+            desc: `Alamat: ${item.alamat_penerima}`,
+            image: getImageUrl(item.image),
+            amount: 'Terklaim',
+            status: 'Terklaim',
+            time: new Date(item.tanggal_klaim).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+            timestamp: new Date(item.tanggal_klaim).getTime(),
+            location: item.alamat_penerima,
+            tags: ['Klaim Selesai'],
+            actionType: 'button'
+        }));
+
+        // Gabungkan riwayat dan urutkan berdasarkan waktu paling baru
+        return [...donationHistories, ...claimHistories].sort((a, b) => b.timestamp - a.timestamp);
+    }, [donations, claims]);
 
     const filteredHistories = useMemo(() => getFilteredHistories(histories, activeTab), [histories, activeTab]);
 
@@ -74,7 +122,7 @@ export default function ProfileHistory({ histories = [] }) {
                                                 <h4 className="truncate text-[11px] font-black leading-tight text-gray-900 sm:text-[12px]">{item.title}</h4>
 
                                                 <span className="shrink-0 rounded-full bg-emerald-500 px-2 py-0.5 text-[7px] font-bold text-white sm:text-[8px]">
-                                                    100% Tersalurkan
+                                                    100% Selesai
                                                 </span>
                                             </div>
 
@@ -96,7 +144,7 @@ export default function ProfileHistory({ histories = [] }) {
                                             <img src={item.image} alt={item.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
 
                                             <span className="absolute left-1.5 top-1.5 rounded-md bg-white/95 px-1.5 py-0.5 text-[7px] font-bold text-gray-800 shadow-sm backdrop-blur sm:text-[8px]">
-                                                {item.amount || 'Item'}
+                                                {item.amount}
                                             </span>
                                         </div>
 
@@ -117,7 +165,7 @@ export default function ProfileHistory({ histories = [] }) {
                                             <p className="mt-1 truncate text-[8px] font-medium leading-relaxed text-gray-500 sm:text-[9px]">{item.desc}</p>
 
                                             <div className="mt-1.5 flex min-w-0 items-center gap-1.5 overflow-hidden">
-                                                {item.location && (
+                                                {item.location && item.location !== '-' && (
                                                     <span className="inline-flex max-w-[52%] shrink-0 items-center gap-1 truncate rounded-md border border-gray-100 bg-gray-50 px-1.5 py-1 text-[7px] font-bold text-gray-600 sm:px-2 sm:text-[8px]">
                                                         <MapPin className="h-2.5 w-2.5 shrink-0 text-gray-400" />
                                                         <span className="truncate">{item.location}</span>

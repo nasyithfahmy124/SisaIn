@@ -11,29 +11,33 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ProfileHistory from './ProfileHistory';
-import { dummyHistories } from './histori';
 
 export default function ProfileDesktop({
-    user = {
-        level: 'Level 2',
-        message:
-            'Terima kasih telah menyalurkan material sisa renovasi untuk perbaikan fasilitas warga sekitar Semarang dan sekitarnya.'
-    },
-    stats = {
-        savedTotal: '185',
-        savedUnit: 'Kg+',
-        projectCount: 3
-    },
-    impact = {
+    profile,
+    donations = [],
+    claims = [],
+    donationTotal = 0,
+    claimTotal = 0
+}) {
+    // 1. Ambil nama pengguna dari data profil (Fallback ke email atau 'Pengguna')
+    const userName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || profile?.email || 'Pengguna';
+    const userLevel = 'Level 2'; // Bisa dinamis nanti jika ada field 'level' di backend
+
+    // 2. Kalkulasi total material yang diselamatkan (Hitung dari bobot, jika 0 gunakan jumlah item)
+    const totalWeight = donations.reduce((sum, item) => sum + (Number(item.bobot) || 0), 0);
+    const savedTotal = totalWeight > 0 ? totalWeight : donationTotal;
+    const savedUnit = totalWeight > 0 ? 'Kg+' : 'Item';
+
+    // 3. Data gamifikasi (Koin & Impact) statis untuk sementara karena belum ada di backend
+    const impact = {
         coins: 320,
         popularProject: {
             title: 'Perbaikan Jalan Gang RT 03/RW 05 Pleburan',
             desc: 'Kebutuhan : Semen & pasir jalan, disalurkan lg...',
             progress: 75
         }
-    },
-    histories = dummyHistories
-}) {
+    };
+
     return (
         <div className="mx-auto max-w-[1200px] px-6 py-8">
             <div className="relative mb-10 flex items-center justify-between overflow-hidden rounded-[32px] bg-[#FFBD00] p-8 shadow-sm">
@@ -53,13 +57,15 @@ export default function ProfileDesktop({
 
                     <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-gray-900 px-3 py-1.5 text-xs font-bold text-white shadow-sm">
                         <span className="flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400">
-                            <span className="text-[10px] text-gray-900">P</span>
+                            <span className="text-[10px] text-gray-900">
+                                {userName.charAt(0).toUpperCase()}
+                            </span>
                         </span>
-                        {user.level}
+                        {userLevel}
                     </div>
 
                     <p className="max-w-lg text-sm font-medium leading-relaxed text-gray-900/80">
-                        {user.message}
+                        Halo {userName}! Terima kasih telah menyalurkan material sisa renovasi untuk perbaikan fasilitas warga sekitar Semarang dan sekitarnya.
                     </p>
                 </div>
 
@@ -74,8 +80,7 @@ export default function ProfileDesktop({
                         </div>
 
                         <h2 className="mb-1 text-2xl font-black text-gray-900">
-                            {stats.savedTotal}{' '}
-                            <span className="text-lg">{stats.savedUnit}</span>
+                            {savedTotal} <span className="text-lg">{savedUnit}</span>
                         </h2>
 
                         <p className="text-[11px] font-semibold leading-tight text-gray-500">
@@ -85,7 +90,7 @@ export default function ProfileDesktop({
 
                     <div className="relative w-[180px] rounded-3xl bg-white p-5 shadow-sm transition-transform hover:-translate-y-1">
                         <div className="absolute -right-0 top-[-12px] rounded-full border border-red-100 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
-                            ♥ 3 Bantuan
+                            ♥ {claimTotal} Bantuan
                         </div>
 
                         <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-100 bg-gray-50">
@@ -93,7 +98,7 @@ export default function ProfileDesktop({
                         </div>
 
                         <h2 className="mb-1 text-2xl font-black text-gray-900">
-                            {stats.projectCount} Proyek
+                            {claimTotal} Proyek
                         </h2>
 
                         <p className="text-[11px] font-semibold leading-tight text-gray-500">
@@ -105,7 +110,8 @@ export default function ProfileDesktop({
 
             <div className="grid grid-cols-12 gap-8">
                 <div className="col-span-8">
-                    <ProfileHistory histories={histories} />
+                    {/* Melempar data riwayat dari backend ke ProfileHistory */}
+                    <ProfileHistory donations={donations} claims={claims} />
                 </div>
 
                 <div className="col-span-4 space-y-6">
