@@ -1,162 +1,140 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import logo1 from '../assets/img/logo1.png';
-import logo2 from '../assets/img/logo2.png';
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+
+import logo1 from "../assets/img/logo1.png";
+import logo2 from "../assets/img/logo2.png";
 
 export default function AdvancedSplashScreen() {
-    const navigate = useNavigate();
-    const [visible, setVisible] = useState(false);
-    const [exit, setExit] = useState(false);
-    const [progress, setProgress] = useState(0);
+  const navigate = useNavigate();
+  const [progress, setProgress] = useState(0);
 
-    useEffect(() => {
-        const showTimer = setTimeout(() => {
-            setVisible(true);
-        }, 100);
+  useEffect(() => {
+    let startTime;
+    let animationFrame;
 
-        const loadingTimer = setInterval(() => {
-            setProgress((prev) => Math.min(prev + 1, 100));
-        }, 28);
+    const duration = 3300;
 
-        const finishTimer = setTimeout(() => {
-            setExit(true);
+    const updateProgress = (timestamp) => {
+      if (!startTime) startTime = timestamp;
 
-            setTimeout(() => {
-                navigate('/', { replace: true });
-            }, 650);
-        }, 3300);
+      const elapsed = timestamp - startTime;
+      const value = Math.min((elapsed / duration) * 100, 100);
 
-        return () => {
-            clearTimeout(showTimer);
-            clearTimeout(finishTimer);
-            clearInterval(loadingTimer);
-        };
-    }, [navigate]);
+      setProgress(Math.round(value));
 
-    return (
-        <main
-            className={`fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-white transition-all duration-700 ${
-                exit
-                    ? 'scale-[1.03] opacity-0'
-                    : 'scale-100 opacity-100'
-            }`}
+      if (elapsed < duration) {
+        animationFrame = requestAnimationFrame(updateProgress);
+      } else {
+        setProgress(100);
+
+        setTimeout(() => {
+          navigate("/beranda", { replace: true });
+        }, 300);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(updateProgress);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+    };
+  }, [navigate]);
+
+  return (
+    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,204,0,0.12),transparent_35%)]" />
+
+      <div className="relative z-10 flex w-full max-w-[360px] flex-col items-center px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="relative flex h-[220px] w-[220px] items-center justify-center"
         >
-            <div
-                className={`absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-400/10 blur-[100px] transition-all duration-[1600ms] ${
-                    visible
-                        ? 'scale-100 opacity-100'
-                        : 'scale-50 opacity-0'
-                }`}
+          <motion.div
+            className="absolute inset-0 rounded-full border border-gray-200"
+          />
+
+          <motion.div
+            className="absolute inset-[4px] rounded-full border border-[#FFCC00]"
+            style={{
+              borderRightColor: "transparent",
+              borderBottomColor: "transparent",
+            }}
+            animate={{ rotate: 360 }}
+            transition={{
+              duration: 1.8,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          />
+
+          <motion.div
+            animate={{ scale: [1, 1.04, 1] }}
+            transition={{
+              duration: 2.2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="relative flex h-[150px] w-[150px] items-center justify-center"
+          >
+            <img
+              src={logo2}
+              alt="SISAIN"
+              className="max-h-full max-w-full object-contain"
             />
+          </motion.div>
+        </motion.div>
 
-            <section className="relative z-10 flex flex-col items-center">
-                <div className="relative flex h-44 w-44 items-center justify-center">
-                    <div
-                        className={`absolute inset-0 rounded-full border border-gray-200 transition-all duration-[1200ms] ${
-                            visible
-                                ? 'scale-100 opacity-100'
-                                : 'scale-75 opacity-0'
-                        }`}
-                    />
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.6 }}
+          className="mt-5"
+        >
+          <img
+            src={logo1}
+            alt="SISAIN"
+            className="mx-auto h-auto w-[190px] object-contain"
+          />
+        </motion.div>
 
-                    <div className="absolute inset-0 animate-[spin_6s_linear_infinite]">
-                        <span className="absolute left-1/2 top-[-2px] h-1 w-1 -translate-x-1/2 rounded-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,.7)]" />
-                    </div>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55, duration: 0.6 }}
+          className="mt-2 text-[12px] font-medium uppercase tracking-[0.45em] text-[#9AA9C1]"
+        >
+          UBAH SISA, BANGUN MANFAAT
+        </motion.p>
 
-                    <svg
-                        className="absolute inset-0 h-full w-full -rotate-90"
-                        viewBox="0 0 176 176"
-                    >
-                        <circle
-                            cx="88"
-                            cy="88"
-                            r="83"
-                            fill="none"
-                            stroke="#f1f1f1"
-                            strokeWidth="1"
-                        />
-
-                        <circle
-                            cx="88"
-                            cy="88"
-                            r="83"
-                            fill="none"
-                            stroke="#eab308"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeDasharray={`${progress * 5.215} 521.5`}
-                            className="transition-all duration-100"
-                        />
-                    </svg>
-
-                    <div
-                        className={`relative flex h-[125px] w-[125px] items-center justify-center transition-all duration-[1200ms] delay-300 ${
-                            visible
-                                ? 'rotate-0 scale-100 opacity-100'
-                                : '-rotate-12 scale-50 opacity-0'
-                        }`}
-                    >
-                        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
-                            <div className="absolute left-[-100%] top-0 h-full w-[40%] -skew-x-[-20deg] animate-[shine_2.8s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/80 to-transparent" />
-                        </div>
-
-                        <img
-                            src={logo2}
-                            alt="SISAIN"
-                            className="relative z-10 w-[105px] object-contain drop-shadow-[0_8px_20px_rgba(234,179,8,.25)]"
-                        />
-                    </div>
-                </div>
-
-                <div
-                    className={`mt-8 text-center transition-all duration-[900ms] delay-300 ease-out ${
-                        visible
-                            ? 'translate-y-0 opacity-100'
-                            : 'translate-y-3 opacity-0'
-                    }`}
-                >
-                    <img
-                        src={logo1}
-                        alt="SISAIN"
-                        className="mx-auto h-auto w-72 object-contain"
-                    />
-
-                    <p className="mt-3 text-[11px] uppercase tracking-[0.28em] text-gray-400">
-                        Ubah Sisa, Bangun Manfaat
-                    </p>
-                </div>
-
-                <div
-                    className={`mt-9 w-48 transition-all duration-700 delay-500 ${
-                        visible ? 'opacity-100' : 'opacity-0'
-                    }`}
-                >
-                    <div className="mb-2 flex items-center justify-between">
-                        <span className="text-[8px] uppercase tracking-[0.25em] text-gray-300">
-                            Loading
-                        </span>
-
-                        <span className="text-[8px] tracking-wider text-yellow-600">
-                            {progress}%
-                        </span>
-                    </div>
-
-                    <div className="h-[2px] overflow-hidden rounded-full bg-gray-100">
-                        <div
-                            className="h-full bg-yellow-500 transition-all duration-100"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                </div>
-            </section>
-
-            <span
-                className={`absolute bottom-6 text-[8px] tracking-[0.35em] text-gray-600 transition-opacity duration-700 ${
-                    visible ? 'opacity-100' : 'opacity-0'
-                }`}
-            >
-                © 2024 SISAIN. All rights reserved.
+        <div className="mt-12 w-full max-w-[240px]">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.35em] text-[#C7CED8]">
+              Loading
             </span>
-        </main>
-    );
+
+            <span className="text-[10px] font-bold text-[#E8A900]">
+              {progress}%
+            </span>
+          </div>
+
+          <div className="h-[3px] w-full overflow-hidden bg-[#EEF1F4]">
+            <motion.div
+              className="h-full bg-[#FFCC00]"
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.15, ease: "linear" }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute bottom-7 left-0 right-0 text-center">
+        <p className="text-[9px] font-medium uppercase tracking-[0.4em] text-[#8B96A8]">
+          © 2024 SISAIN. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
 }
