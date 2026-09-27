@@ -178,5 +178,8 @@ STORAGES = {
     },
 }
 MEDIA_URL = '/media/'
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
-GOOGLE_CLIENT_ID = "497788560869-tr6847ke129tnbh6ao5s59r61sflhir2.apps.googleusercontent.com"
+# GOOGLE_CLIENT_ID = (
+#     "497788560869-tr6847ke129tnbh6ao5s5r96sflhir2.apps.googleusercontent.com"
+# )

@@ -2,12 +2,12 @@ import os
 from dotenv import load_dotenv
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status,generics,serializers
 from django.urls import reverse
 import google.generativeai as genai
 from .serializers import ChatRekomendasiSerializer,AIAnalisisSeri
 from .models import AIAnalisis
-from .servis import analyze_material_image
+from .servis import analyze_material_image_from_bytes
 from rest_framework.permissions import AllowAny
 load_dotenv()
 
@@ -99,28 +99,38 @@ class RekomendasiMaterialAIView(APIView):
             "daftar_rekomendasi_mentah": daftar_barang 
         }, status=status.HTTP_200_OK)
         
+class ProsesAnalisisAIView(generics.CreateAPIView):
+    serializer_class = AIAnalisisSeri
 
-class ProsesAnalisisAIView(APIView):
+    def perform_create(self, serializer):
+        uploaded_file = self.request.FILES.get('image')
+        
+        if not uploaded_file:
+            raise serializers.ValidationError({"error": "File gambar tidak ditemukan dalam request."})
 
-  def post(self, request):
-    serializer = AIAnalisisSeri(data=request.data)
+        image_bytes = uploaded_file.read()
 
-    if serializer.is_valid():
-      instance = serializer.save()
+        instance = serializer.save()
 
-      try:
-        image_path = instance.image.path
-        ai_json_result = analyze_material_image(image_path)
-        instance.result_data = ai_json_result
-        instance.save()
-        output_serializer = AIAnalisisSeri(instance)
-        return Response(
-            output_serializer.data, status=status.HTTP_201_CREATED
-        )
+        try:
+            ai_json_result = analyze_material_image_from_bytes(image_bytes)
+            instance.result_data = ai_json_result
+            instance.save()
+            
+        except Exception as e:
+            instance.delete()
+            raise serializers.ValidationError({"error": f"Gagal memproses AI: {str(e)}"})
 
-      except Exception as e:
-        return Response(
-            {"error": f"Gagal memproses AI: {str(e)}"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
