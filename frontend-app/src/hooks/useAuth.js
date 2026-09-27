@@ -8,12 +8,29 @@ export const useAuth = () => {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    const loadProfile = async token => {
+    const loadProfile = async (token) => {
         try {
             const profile = await authApi.getProfile(token);
             setUser({ ...profile, isAuthenticated: true, token });
             return profile;
         } catch {
+            const refreshToken = localStorage.getItem('refresh_token');
+            
+            if (refreshToken) {
+                try {
+                    const data = await authApi.refreshToken(refreshToken);
+                    localStorage.setItem('access_token', data.access);
+                    const profile = await authApi.getProfile(data.access);
+                    setUser({ ...profile, isAuthenticated: true, token: data.access });
+                    return profile;
+                } catch {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    setUser(null);
+                    return null;
+                }
+            }
+            
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
             setUser(null);
@@ -32,16 +49,14 @@ export const useAuth = () => {
         loadProfile(token).finally(() => setIsLoading(false));
     }, []);
 
-    const login = async credentials => {
+    const login = async (credentials) => {
         setIsLoading(true);
         setError(null);
 
         try {
             const data = await authApi.login(credentials);
-
             localStorage.setItem('access_token', data.access);
             localStorage.setItem('refresh_token', data.refresh);
-
             await loadProfile(data.access);
             navigate('/beranda');
         } catch (err) {
@@ -52,16 +67,14 @@ export const useAuth = () => {
         }
     };
 
-    const loginWithGoogle = async googleToken => {
+    const loginWithGoogle = async (googleToken) => {
         setIsLoading(true);
         setError(null);
 
         try {
             const data = await authApi.loginWithGoogle(googleToken);
-
             localStorage.setItem('access_token', data.access);
             localStorage.setItem('refresh_token', data.refresh);
-
             await loadProfile(data.access);
             navigate('/beranda');
         } catch (err) {
@@ -72,7 +85,7 @@ export const useAuth = () => {
         }
     };
 
-    const register = async userData => {
+    const register = async (userData) => {
         setIsLoading(true);
         setError(null);
 
@@ -97,7 +110,6 @@ export const useAuth = () => {
 
     const refreshProfile = async () => {
         const token = localStorage.getItem('access_token');
-
         if (token) await loadProfile(token);
     };
 

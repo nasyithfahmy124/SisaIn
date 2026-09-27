@@ -1,295 +1,293 @@
-import React, { useState, useEffect } from 'react';
-import { 
-    ArrowLeft, Check, RotateCcw, ArrowRight, Zap, 
-    Leaf, MapPin, AlertCircle, ShieldCheck
-} from 'lucide-react';
 
-export default function AnalisisAIMobile({ imagePayload, onBack, onNext }) {
-    const [progress, setProgress] = useState(0);
-    const [scanPosition, setScanPosition] = useState(0);
-    const [scanDirection, setScanDirection] = useState('down');
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertCircle, ArrowLeft, ArrowRight, Check, Leaf, MapPin, RefreshCw, RotateCcw, ShieldCheck, Zap } from 'lucide-react';
+import { useAiRedistribusi } from '../../hooks/useAiRedistribusi';
 
-    // Animasi Progress & Scanner (Simulasi ~2.4 detik)
-    useEffect(() => {
-        const progressInterval = setInterval(() => {
-            setProgress((prev) => {
-                if (prev >= 100) {
-                    clearInterval(progressInterval);
-                    return 100;
-                }
-                return prev + 2;
-            });
-        }, 50);
+const getValue = (value, fallback = 'Tidak tersedia') => value ?? fallback;
+const formatText = (value) => value ? String(value).replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()) : 'Tidak tersedia';
+const formatWeight = (value) => {
+    if (value === null || value === undefined || value === '') return 'Tidak tersedia';
+    const number = Number(value);
+    return Number.isNaN(number) ? String(value) : `~${number.toLocaleString('id-ID')} kg`;
+};
+const getWeight = (result) => result?.bobot ?? result?.berat ?? result?.jumlah_bobot ?? result?.estimasi_bobot ?? result?.weight;
+const getCondition = (result) => result?.kondisi_barang ?? result?.kondisi ?? result?.status_kondisi;
+const getMaterial = (result) => result?.nama_material ?? result?.namaMaterial ?? result?.material;
+const getCategory = (result) => result?.kategori ?? result?.category;
+const getAccuracy = (result) => result?.akurasi ?? result?.accuracy ?? result?.confidence;
+const getIntegrity = (result) => result?.integritas ?? result?.persentase_kondisi ?? result?.persentase_keutuhan;
+const getImpact = (result) => result?.dampak_lingkungan ?? result?.impact;
+const getRecommendations = (result) => {
+    const items = result?.rekomendasi ?? result?.recommendations ?? result?.potensi_penerima ?? result?.penerima_terdekat ?? [];
+    return Array.isArray(items) ? items : [];
+};
+const getRecommendationName = (item) => item?.nama ?? item?.nama_proyek ?? item?.nama_penerima ?? item?.title ?? 'Penerima material';
+const getRecommendationDistance = (item) => item?.jarak ?? item?.distance ?? item?.distance_km;
+const getImageUrl = (payload) => payload?.url || payload?.preview || (payload?.file ? URL.createObjectURL(payload.file) : null);
 
-        const scanInterval = setInterval(() => {
-            setScanPosition((prev) => {
-                if (scanDirection === 'down') {
-                    if (prev >= 90) setScanDirection('up');
-                    return prev + 2;
-                } else {
-                    if (prev <= 10) setScanDirection('down');
-                    return prev - 2;
-                }
-            });
-        }, 30);
+function MobileHeader({ progress, onBack }) {
+    return (
+        <header className="sticky top-0 z-30 border-b border-gray-100 bg-white px-4 pb-4 pt-5">
+            <button type="button" onClick={onBack} className="mb-4 flex items-center gap-2 text-gray-900">
+                <ArrowLeft className="h-5 w-5" /><span className="text-sm font-bold">Kembali</span>
+            </button>
+            <div className="flex items-center justify-between gap-4">
+                <h1 className="text-lg font-black tracking-tight text-gray-900">Analisis Material Ai</h1>
+                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-gray-200"><motion.div className="h-full rounded-full bg-[#FFCC00]" animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} /></div>
+            </div>
+        </header>
+    );
+}
 
-        return () => {
-            clearInterval(progressInterval);
-            clearInterval(scanInterval);
-        };
-    }, [scanDirection]);
-
-    const isComplete = progress === 100;
+function Stepper() {
+    const steps = [{ label: '01 Foto', done: true }, { label: '02 Analisis', active: true }, { label: '03 Konfirm' }, { label: '04 Kirim' }];
 
     return (
-        <div className="min-h-screen bg-[#FAF9F7] font-sans pb-32">
-            
-            {/* Top Bar & Mini Progress */}
-            <div className="bg-white sticky top-0 z-30 px-4 pt-6 pb-4 border-b border-gray-100">
-                <div className="flex justify-between items-center mb-4">
-                    <button onClick={onBack} className="flex items-center gap-2 text-gray-900">
-                        <ArrowLeft className="w-5 h-5" />
-                        <span className="text-sm font-bold">Kembali</span>
-                    </button>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                    <h1 className="text-lg font-black text-gray-900 tracking-tight">Analisis Material Ai</h1>
-                    <div className="w-20 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                        <div className="bg-[#FFCC00] h-1.5 rounded-full transition-all duration-75" style={{ width: `${progress}%` }}></div>
+        <div className="overflow-hidden rounded-full border border-gray-100 bg-white px-1.5 py-1.5 shadow-sm">
+            <div className="flex min-w-max items-center gap-1.5">
+                {steps.map((step) => (
+                    <div key={step.label} className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 ${step.active ? 'bg-[#FFCC00]' : 'text-gray-400'}`}>
+                        {step.done ? <Check className="h-3 w-3" /> : <span className={`h-1.5 w-1.5 rounded-full ${step.active ? 'bg-gray-900' : 'bg-gray-300'}`} />}
+                        <span className={`text-[10px] ${step.active ? 'font-black text-gray-900' : 'font-bold'}`}>{step.label}</span>
                     </div>
-                </div>
-            </div>
-
-            {/* Stepper Horizontal */}
-            <div className="px-4 py-4">
-                <div className="flex items-center gap-2 bg-white rounded-full py-1.5 px-1.5 shadow-sm border border-gray-100 overflow-x-auto hide-scrollbar">
-                    <div className="flex shrink-0 items-center gap-1.5 text-gray-400 px-3 py-1.5">
-                        <Check className="w-3 h-3" />
-                        <span className="text-[10px] font-bold">01 Foto</span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5 bg-[#FFCC00] px-3 py-1.5 rounded-full">
-                        <span className="w-1.5 h-1.5 bg-gray-900 rounded-full"></span>
-                        <span className="text-[10px] font-black text-gray-900">02 Analisis</span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5 text-gray-400 px-3 py-1.5">
-                        <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                        <span className="text-[10px] font-bold">03 Konfirm</span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5 text-gray-400 px-3 py-1.5">
-                        <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                        <span className="text-[10px] font-bold">04 Kirim</span>
-                    </div>
-                </div>
-            </div>
-
-            <div className="px-4 space-y-4">
-                
-                {/* Visual AI Frame */}
-                <div>
-                    <div className="relative w-full aspect-[4/3] bg-gray-900 rounded-2xl overflow-hidden shadow-sm border border-gray-200">
-                        <img 
-                            src={imagePayload?.url || "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=600"} 
-                            alt="Proses Analisis" 
-                            className={`w-full h-full object-cover transition-all duration-700 ${isComplete ? 'scale-100 opacity-100' : 'scale-105 opacity-90'}`}
-                        />
-
-                        {/* Scanner Line */}
-                        {!isComplete && (
-                            <div 
-                                className="absolute left-0 right-0 h-10 bg-gradient-to-b from-transparent to-[#FFCC00]/50 border-b-[3px] border-[#FFCC00] z-10 pointer-events-none"
-                                style={{ top: `${scanPosition}%`, transition: 'top 0.1s linear' }}
-                            ></div>
-                        )}
-
-                        {/* Frame Corners (Yellow) */}
-                        <div className="absolute top-3 left-3 w-6 h-6 border-t-[3px] border-l-[3px] border-[#FFCC00] rounded-tl-lg pointer-events-none"></div>
-                        <div className="absolute top-3 right-3 w-6 h-6 border-t-[3px] border-r-[3px] border-[#FFCC00] rounded-tr-lg pointer-events-none"></div>
-                        <div className="absolute bottom-3 left-3 w-6 h-6 border-b-[3px] border-l-[3px] border-[#FFCC00] rounded-bl-lg pointer-events-none"></div>
-                        <div className="absolute bottom-3 right-3 w-6 h-6 border-b-[3px] border-r-[3px] border-[#FFCC00] rounded-br-lg pointer-events-none"></div>
-
-                        {/* Overlay Tags Progressive */}
-                        <div className={`absolute top-5 left-5 transition-opacity duration-500 ${progress > 25 ? 'opacity-100' : 'opacity-0'}`}>
-                            <div className="bg-white/95 backdrop-blur text-gray-900 text-[9px] font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                                <Check className="w-3 h-3 text-emerald-600" /> Semen PCC Portland
-                            </div>
-                        </div>
-
-                        <div className={`absolute top-5 right-5 transition-opacity duration-500 ${progress > 50 ? 'opacity-100' : 'opacity-0'}`}>
-                            <div className="bg-white/95 backdrop-blur text-gray-900 text-[9px] font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                                <Check className="w-3 h-3 text-emerald-600" /> Utuh 96%
-                            </div>
-                        </div>
-
-                        <div className={`absolute bottom-5 left-5 transition-opacity duration-500 ${progress > 75 ? 'opacity-100' : 'opacity-0'}`}>
-                            <div className="bg-[#FFCC00]/95 backdrop-blur text-gray-900 text-[9px] font-black px-2 py-1 rounded-full flex items-center gap-1 shadow-sm border border-yellow-400">
-                                <span className="w-1.5 h-1.5 rounded-full bg-gray-900"></span> ~160 kg (4 Sak)
-                            </div>
-                        </div>
-
-                        <div className={`absolute bottom-5 right-5 transition-opacity duration-500 ${isComplete ? 'opacity-100' : 'opacity-0'}`}>
-                            <div className="bg-emerald-100/95 backdrop-blur text-emerald-800 text-[9px] font-black px-2 py-1 rounded-full flex items-center gap-1 shadow-sm border border-emerald-300">
-                                <Zap className="w-3 h-3 text-emerald-600" /> Prioritas Tinggi
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-between items-center mt-2 px-1">
-                        <p className="text-[8px] font-bold text-gray-500 flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3 text-[#FFCC00]" /> CV v3.4-ID • Kalibrasi Sak 40kg
-                        </p>
-                        <span className="bg-gray-100 text-gray-600 text-[8px] font-bold px-2 py-0.5 rounded border border-gray-200">
-                            SNI 7064 Terverifikasi
-                        </span>
-                    </div>
-                </div>
-
-                {/* Checklist Pemeriksaan Material */}
-                <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-base font-black text-gray-900">Pemeriksaan Material</h3>
-                        <span className={`text-[8px] font-black px-2 py-1 rounded-full flex items-center gap-1 transition-colors ${isComplete ? 'bg-gray-100 text-gray-600' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
-                            {!isComplete && <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>}
-                            {isComplete ? 'Selesai' : 'Aktif'}
-                        </span>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div className="flex gap-3">
-                            {progress > 25 ? (
-                                <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><Check className="w-3 h-3"/></div>
-                            ) : (
-                                <div className="w-5 h-5 rounded-full border-2 border-gray-200 shrink-0"></div>
-                            )}
-                            <div>
-                                <div className="flex items-center gap-2 mb-0.5">
-                                    <h4 className={`text-[11px] font-black ${progress > 25 ? 'text-gray-900' : 'text-gray-400'}`}>Mengenali Jenis Material</h4>
-                                    {progress > 25 && <span className="text-[8px] text-emerald-600 font-bold">Selesai</span>}
-                                </div>
-                                <p className={`text-[9px] ${progress > 25 ? 'text-gray-500' : 'text-gray-400'}`}>Semen PCC (Portland Composite) teridentifikasi jelas dari kemasan sak.</p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                            {progress > 50 ? (
-                                <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><Check className="w-3 h-3"/></div>
-                            ) : (
-                                <div className="w-5 h-5 rounded-full border-2 border-gray-200 shrink-0"></div>
-                            )}
-                            <div>
-                                <div className="flex items-center gap-2 mb-0.5">
-                                    <h4 className={`text-[11px] font-black ${progress > 50 ? 'text-gray-900' : 'text-gray-400'}`}>Memeriksa Kondisi Fisik</h4>
-                                    {progress > 50 && <span className="text-[8px] text-emerald-600 font-bold">Kering</span>}
-                                </div>
-                                <p className={`text-[9px] ${progress > 50 ? 'text-gray-500' : 'text-gray-400'}`}>Kemasan utuh di atas palet kayu, tidak ada indikasi kelembapan berlebih atau pembatuan.</p>
-                            </div>
-                        </div>
-
-                        <div className={`flex gap-3 p-2 -mx-2 rounded-xl transition-colors ${progress > 75 && !isComplete ? 'bg-[#FFFAEB]' : ''}`}>
-                            {isComplete ? (
-                                <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><Check className="w-3 h-3"/></div>
-                            ) : progress > 75 ? (
-                                <div className="w-5 h-5 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center shrink-0"><RotateCcw className="w-3 h-3 animate-spin"/></div>
-                            ) : (
-                                <div className="w-5 h-5 rounded-full border-2 border-gray-200 shrink-0"></div>
-                            )}
-                            <div>
-                                <div className="flex items-center gap-2 mb-0.5">
-                                    <h4 className={`text-[11px] font-black ${progress > 75 ? 'text-gray-900' : 'text-gray-400'}`}>Kalkulasi Volume & Bobot</h4>
-                                    {progress > 75 && !isComplete && <span className="bg-[#FFCC00] text-gray-900 text-[8px] font-black px-1.5 py-0.5 rounded">Sedang Dihitung</span>}
-                                </div>
-                                <p className={`text-[9px] ${progress > 75 ? 'text-gray-600' : 'text-gray-400'}`}>Memindai 4 lapisan sak terstruktur: perkiraan bobot total 160 kg.</p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                            {isComplete ? (
-                                <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><Check className="w-3 h-3"/></div>
-                            ) : (
-                                <div className="w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center shrink-0"><div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div></div>
-                            )}
-                            <div>
-                                <h4 className={`text-[11px] font-black mb-0.5 ${isComplete ? 'text-gray-900' : 'text-gray-400'}`}>Pencocokan Fasum Terdekat</h4>
-                                <p className={`text-[9px] ${isComplete ? 'text-gray-500' : 'text-gray-400'}`}>{isComplete ? 'Menghubungkan estimasi ke 2 titik renovasi sosial sekitar Candisari.' : 'Menunggu hasil kalkulasi volume.'}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Ringkasan Deteksi (Hanya tampil penuh saat progress tinggi) */}
-                <div className={`bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 transition-all duration-500 ${progress > 90 ? 'opacity-100' : 'opacity-50'}`}>
-                    <div className="flex justify-between items-end mb-4">
-                        <span className="text-[9px] font-black text-gray-500 uppercase tracking-wider">Ringkasan Deteksi</span>
-                        <span className="text-[9px] font-bold text-yellow-600">Akurasi Visual: 98.2%</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                            <p className="text-[9px] text-gray-500 mb-0.5">Kategori Utama</p>
-                            <p className="text-[12px] font-black text-gray-900">Semen & Perekat</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                            <p className="text-[9px] text-gray-500 mb-0.5">Estimasi Muatan</p>
-                            <p className="text-[12px] font-black text-gray-900">~160 Kg (4 Sak)</p>
-                        </div>
-                    </div>
-
-                    <div className="bg-[#F0FDF4] rounded-xl p-3 flex gap-3 items-center mb-4">
-                        <div className="w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
-                            <Leaf className="w-3.5 h-3.5 text-emerald-600" />
-                        </div>
-                        <div>
-                            <h4 className="text-[9px] font-black text-emerald-800">Dampak Lingkungan Potensial</h4>
-                            <p className="text-[9px] text-emerald-700 leading-tight mt-0.5">Menghemat est. <strong className="text-emerald-900">-0.35 ton CO₂e</strong> dari produksi semen pabrik baru.</p>
-                        </div>
-                    </div>
-
-                    <div>
-                        <p className="text-[9px] font-bold text-gray-500 mb-2">Rekomendasi Penyaluran Cepat:</p>
-                        <div className="space-y-1.5">
-                            <div className="bg-gray-50 rounded-lg px-3 py-2 flex justify-between items-center border border-gray-100">
-                                <span className="text-[9px] font-semibold text-gray-700 flex items-center gap-1.5"><MapPin className="w-3 h-3 text-yellow-600"/> Perbaikan Jalan Gang RT 03 Candisari</span>
-                                <span className="text-[9px] text-gray-500">1.2 km</span>
-                            </div>
-                            <div className="bg-gray-50 rounded-lg px-3 py-2 flex justify-between items-center border border-gray-100">
-                                <span className="text-[9px] font-semibold text-gray-700 flex items-center gap-1.5"><MapPin className="w-3 h-3 text-yellow-600"/> Renovasi Wudhu Musala Al-Ikhlas</span>
-                                <span className="text-[9px] text-gray-500">2.4 km</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Catatan Transparansi */}
-                <div className="px-1">
-                    <div className="flex gap-2.5">
-                        <AlertCircle className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" />
-                        <p className="text-[9px] text-gray-500 leading-relaxed">
-                            <strong className="text-gray-800">Catatan Transparansi:</strong> Hasil analisis merupakan estimasi visual awal berbasis AI, bukan uji laboratorium beton. Kamu tetap memegang kendali penuh untuk menyunting bobot dan kondisi fisik di tahap konfirmasi.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Bottom Action Bar (Sticky) */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white pt-3 pb-6 px-4 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] z-40 flex gap-3">
-                <button 
-                    onClick={onBack}
-                    className="flex shrink-0 items-center justify-center gap-1.5 bg-gray-100 text-gray-800 text-[11px] font-bold px-5 py-3.5 rounded-full active:scale-95 transition-transform"
-                >
-                    <RotateCcw className="w-3.5 h-3.5" /> Ulang
-                </button>
-                <button 
-                    onClick={() => onNext({ category: 'Semen & Perekat', weight: 160 })}
-                    disabled={!isComplete}
-                    className={`flex-1 flex items-center justify-center gap-2 rounded-full text-[11px] font-black py-3.5 transition-all ${
-                        isComplete 
-                        ? 'bg-[#FFCC00] text-gray-900 active:scale-95 shadow-sm' 
-                        : 'bg-gray-100 text-gray-400 opacity-80'
-                    }`}
-                >
-                    Lanjut ke Konfirmasi <ArrowRight className="w-4 h-4" />
-                </button>
+                ))}
             </div>
         </div>
+    );
+}
+
+function Scanner({ loading, position }) {
+    return <AnimatePresence>{loading && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute left-0 right-0 z-10 h-10 border-b-[3px] border-[#FFCC00] bg-gradient-to-b from-transparent to-[#FFCC00]/50" style={{ top: `${position}%` }} />}</AnimatePresence>;
+}
+
+function OverlayTag({ className, visible, children }) {
+    return <AnimatePresence>{visible && <motion.div initial={{ opacity: 0, scale: 0.9, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.35 }} className={`absolute ${className}`}>{children}</motion.div>}</AnimatePresence>;
+}
+
+function ImageAnalysis({ imagePayload, result, loading, failed, scanPosition, progress }) {
+    const imageUrl = getImageUrl(imagePayload);
+    const material = getMaterial(result);
+    const condition = getCondition(result);
+    const weight = getWeight(result);
+    const integrity = getIntegrity(result);
+
+    return (
+        <div>
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-gray-200 bg-gray-900 shadow-sm">
+                {imageUrl ? <img src={imageUrl} alt="Material yang dianalisis" className={`h-full w-full object-cover transition-all duration-700 ${loading ? 'scale-105 opacity-90' : 'scale-100 opacity-100'}`} /> : <div className="flex h-full items-center justify-center text-xs text-gray-400">Foto material tidak tersedia</div>}
+
+                <Scanner loading={loading} position={scanPosition} />
+
+                <div className="pointer-events-none absolute left-3 top-3 h-6 w-6 rounded-tl-lg border-l-[3px] border-t-[3px] border-[#FFCC00]" />
+                <div className="pointer-events-none absolute right-3 top-3 h-6 w-6 rounded-tr-lg border-r-[3px] border-t-[3px] border-[#FFCC00]" />
+                <div className="pointer-events-none absolute bottom-3 left-3 h-6 w-6 rounded-bl-lg border-b-[3px] border-l-[3px] border-[#FFCC00]" />
+                <div className="pointer-events-none absolute bottom-3 right-3 h-6 w-6 rounded-br-lg border-b-[3px] border-r-[3px] border-[#FFCC00]" />
+
+                <OverlayTag visible={progress >= 25 || Boolean(result)} className="left-5 top-5">
+                    <div className="flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[9px] font-bold text-gray-900 shadow-sm backdrop-blur"><Check className="h-3 w-3 text-emerald-600" />{getValue(material, 'Material terdeteksi')}</div>
+                </OverlayTag>
+
+                <OverlayTag visible={progress >= 50 || Boolean(result)} className="right-5 top-5">
+                    <div className="flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[9px] font-bold text-gray-900 shadow-sm backdrop-blur"><Check className="h-3 w-3 text-emerald-600" />{integrity ? `${integrity}%` : formatText(condition)}</div>
+                </OverlayTag>
+
+                <OverlayTag visible={progress >= 75 || Boolean(result)} className="bottom-5 left-5">
+                    <div className="flex items-center gap-1 rounded-full border border-yellow-400 bg-[#FFCC00]/95 px-2 py-1 text-[9px] font-black text-gray-900 shadow-sm"><span className="h-1.5 w-1.5 rounded-full bg-gray-900" />{formatWeight(weight)}</div>
+                </OverlayTag>
+
+                <OverlayTag visible={Boolean(result) && !failed} className="bottom-5 right-5">
+                    <div className="flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100/95 px-2 py-1 text-[9px] font-black text-emerald-800 shadow-sm"><Zap className="h-3 w-3 text-emerald-600" />Prioritas Tinggi</div>
+                </OverlayTag>
+
+                {failed && (
+                    <div className="absolute inset-x-4 bottom-4 rounded-xl border border-red-200 bg-white/95 p-3 shadow-lg backdrop-blur">
+                        <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" /><div><p className="text-[9px] font-black text-red-700">Analisis gagal</p><p className="mt-0.5 text-[8px] leading-relaxed text-gray-600">Gambar tidak berhasil diproses oleh AI.</p></div></div>
+                    </div>
+                )}
+            </div>
+
+            <div className="mt-2 flex items-center justify-between px-1">
+                <p className="flex items-center gap-1 text-[8px] font-bold text-gray-500"><ShieldCheck className="h-3 w-3 text-[#FFCC00]" />AI Vision • Analisis Material</p>
+                <span className="rounded border border-gray-200 bg-gray-100 px-2 py-0.5 text-[8px] font-bold text-gray-600">{result ? 'Analisis selesai' : loading ? 'Memproses' : 'Menunggu'}</span>
+            </div>
+        </div>
+    );
+}
+
+function StatusIcon({ state }) {
+    if (state === 'complete') return <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"><Check className="h-3 w-3" /></div>;
+    if (state === 'active') return <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-yellow-100 text-yellow-600"><RefreshCw className="h-3 w-3 animate-spin" /></div>;
+    return <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-gray-200"><span className="h-1.5 w-1.5 rounded-full bg-gray-300" /></div>;
+}
+
+function InspectionItem({ title, detail, state, badge }) {
+    return (
+        <div className={`flex gap-3 rounded-xl p-2 transition-colors ${state === 'active' ? 'bg-[#FFFAEB]' : ''}`}>
+            <StatusIcon state={state} />
+            <div className="min-w-0 flex-1">
+                <div className="mb-0.5 flex flex-wrap items-center gap-2"><h4 className={`text-[11px] font-black ${state === 'idle' ? 'text-gray-400' : 'text-gray-900'}`}>{title}</h4>{badge && <span className={`rounded px-1.5 py-0.5 text-[8px] font-black ${state === 'active' ? 'bg-[#FFCC00] text-gray-900' : 'text-emerald-600'}`}>{badge}</span>}</div>
+                <p className={`text-[9px] leading-[1.5] ${state === 'idle' ? 'text-gray-400' : 'text-gray-500'}`}>{detail}</p>
+            </div>
+        </div>
+    );
+}
+
+function Inspection({ result, loading }) {
+    const material = getMaterial(result);
+    const condition = getCondition(result);
+    const weight = getWeight(result);
+    const success = Boolean(result);
+
+    const items = [
+        { title: 'Mengenali Jenis Material', detail: success ? `${material} berhasil teridentifikasi dari gambar material.` : 'Menganalisis bentuk, kemasan, dan karakteristik material.', state: success || loading ? 'complete' : 'idle', badge: success ? 'Selesai' : null },
+        { title: 'Memeriksa Kondisi Fisik', detail: success ? `Kondisi material: ${formatText(condition)}.` : 'Memeriksa kondisi visual dan indikasi kerusakan material.', state: success || loading ? 'complete' : 'idle', badge: success ? formatText(condition) : null },
+        { title: 'Kalkulasi Volume & Bobot', detail: success ? `Estimasi bobot material ${formatWeight(weight)} berdasarkan hasil AI.` : 'Mengestimasi jumlah, volume, dan bobot material.', state: success ? 'complete' : loading ? 'active' : 'idle', badge: loading && !success ? 'Sedang Dihitung' : null },
+        { title: 'Pencocokan Fasum Terdekat', detail: success ? 'Menghubungkan hasil analisis dengan rekomendasi penerima dari API.' : 'Menunggu hasil kalkulasi material.', state: success ? 'complete' : 'idle' },
+    ];
+
+    return (
+        <section className="rounded-[24px] border border-gray-100 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between"><h3 className="text-base font-black text-gray-900">Pemeriksaan Material</h3><span className={`flex items-center gap-1 rounded-full px-2 py-1 text-[8px] font-black ${success ? 'bg-gray-100 text-gray-600' : 'bg-emerald-50 text-emerald-600'}`}>{!success && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />}{success ? 'Selesai' : 'Aktif'}</span></div>
+            <div className="space-y-2">{items.map((item) => <InspectionItem key={item.title} {...item} />)}</div>
+        </section>
+    );
+}
+
+function DetectionSummary({ result }) {
+    const category = getCategory(result);
+    const weight = getWeight(result);
+    const accuracy = getAccuracy(result);
+    const impact = getImpact(result);
+    const recommendations = getRecommendations(result);
+
+    return (
+        <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: result ? 1 : 0.45, y: 0 }} className="rounded-[24px] border border-gray-100 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-end justify-between"><span className="text-[9px] font-black uppercase tracking-wider text-gray-500">Ringkasan Deteksi</span>{accuracy && <span className="text-[9px] font-bold text-yellow-600">Akurasi Visual: {accuracy}%</span>}</div>
+
+            <div className="mb-4 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-gray-100 bg-gray-50 p-3"><p className="mb-0.5 text-[9px] text-gray-500">Kategori Utama</p><p className="text-[12px] font-black text-gray-900">{getValue(category)}</p></div>
+                <div className="rounded-xl border border-gray-100 bg-gray-50 p-3"><p className="mb-0.5 text-[9px] text-gray-500">Estimasi Muatan</p><p className="text-[12px] font-black text-gray-900">{formatWeight(weight)}</p></div>
+            </div>
+
+            <div className="mb-4 flex items-center gap-3 rounded-xl bg-[#F0FDF4] p-3">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100"><Leaf className="h-3.5 w-3.5 text-emerald-600" /></div>
+                <div><h4 className="text-[9px] font-black text-emerald-800">Dampak Lingkungan Potensial</h4><p className="mt-0.5 text-[9px] leading-tight text-emerald-700">{getValue(impact, 'Dampak lingkungan akan dihitung berdasarkan hasil analisis material.')}</p></div>
+            </div>
+
+            <div>
+                <p className="mb-2 text-[9px] font-bold text-gray-500">Rekomendasi Penyaluran Cepat:</p>
+                <div className="space-y-1.5">
+                    {recommendations.length ? recommendations.map((item, index) => (
+                        <div key={item?.id ?? index} className="flex items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                            <span className="flex min-w-0 items-center gap-1.5 truncate text-[9px] font-semibold text-gray-700"><MapPin className="h-3 w-3 shrink-0 text-yellow-600" />{getRecommendationName(item)}</span>
+                            {getRecommendationDistance(item) && <span className="shrink-0 text-[9px] text-gray-500">{getRecommendationDistance(item)}</span>}
+                        </div>
+                    )) : <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-[9px] text-gray-400">Belum ada rekomendasi penerima dari API.</div>}
+                </div>
+            </div>
+        </motion.section>
+    );
+}
+
+function TransparencyNote() {
+    return (
+        <div className="px-1">
+            <div className="flex gap-2.5"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" /><p className="text-[9px] leading-relaxed text-gray-500"><strong className="text-gray-800">Catatan Transparansi:</strong> Hasil analisis merupakan estimasi visual awal berbasis AI, bukan uji laboratorium. Kamu tetap memegang kendali penuh untuk menyunting bobot dan kondisi fisik di tahap konfirmasi.</p></div>
+        </div>
+    );
+}
+
+function ErrorState({ error, onRetry }) {
+    return (
+        <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-[24px] border border-red-100 bg-white p-5 shadow-sm">
+            <div className="flex items-start gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-50"><AlertCircle className="h-4 w-4 text-red-500" /></div><div><h3 className="text-sm font-black text-gray-900">Analisis gagal</h3><p className="mt-1 text-[9px] leading-relaxed text-gray-500">{error || 'Material tidak berhasil dianalisis oleh AI.'}</p></div></div>
+            <button type="button" onClick={onRetry} className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#FFCC00] py-3 text-[10px] font-black text-gray-900 shadow-sm transition hover:bg-yellow-400 active:scale-[0.98]"><RefreshCw className="h-3.5 w-3.5" />Coba Lagi</button>
+        </motion.section>
+    );
+}
+
+function BottomActions({ loading, failed, success, onBack, onRetry, onNext, result }) {
+    return (
+        <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-3 bg-white px-4 pb-6 pt-3 shadow-[0_-10px_40px_rgba(0,0,0,0.08)]">
+            <button type="button" onClick={failed ? onRetry : onBack} className="flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-gray-100 px-5 py-3.5 text-[11px] font-bold text-gray-800 transition-transform active:scale-95">{failed ? <RefreshCw className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}{failed ? 'Coba Lagi' : 'Ulang'}</button>
+            <button type="button" onClick={() => onNext?.(result)} disabled={!success || loading} className={`flex flex-1 items-center justify-center gap-2 rounded-full py-3.5 text-[11px] font-black transition-all ${success && !loading ? 'bg-[#FFCC00] text-gray-900 shadow-sm active:scale-95' : 'bg-gray-100 text-gray-400 opacity-80'}`}>Lanjut ke Konfirmasi<ArrowRight className="h-4 w-4" /></button>
+        </div>
+    );
+}
+
+export default function AnalisisAIMobile({ imagePayload, onBack, onNext }) {
+    const { analyzeImage, isLoading, error: hookError } = useAiRedistribusi();
+    const analyzeRef = useRef(analyzeImage);
+    const analyzedFileRef = useRef(null);
+    const [result, setResult] = useState(null);
+    const [localError, setLocalError] = useState(null);
+    const [scanPosition, setScanPosition] = useState(5);
+    const [scanDirection, setScanDirection] = useState(1);
+
+    const loading = Boolean(isLoading);
+    const error = localError || hookError;
+    const failed = Boolean(error);
+    const success = Boolean(result) && !loading && !failed;
+    const progress = failed ? 0 : success ? 100 : loading ? 78 : 0;
+
+    analyzeRef.current = analyzeImage;
+
+    const runAnalysis = useCallback(() => {
+        if (!imagePayload?.file) {
+            setLocalError('Foto material tidak ditemukan.');
+            return;
+        }
+
+        setResult(null);
+        setLocalError(null);
+        analyzeRef.current(imagePayload).then(setResult).catch((err) => setLocalError(err?.message || 'Gagal menganalisis gambar melalui AI.'));
+    }, [imagePayload]);
+
+    useEffect(() => {
+        if (!imagePayload?.file || analyzedFileRef.current === imagePayload.file) return;
+        analyzedFileRef.current = imagePayload.file;
+        runAnalysis();
+    }, [imagePayload?.file, runAnalysis]);
+
+    useEffect(() => {
+        if (!loading) return undefined;
+
+        const interval = setInterval(() => {
+            setScanPosition((current) => {
+                const next = current + scanDirection * 1.5;
+                if (next >= 88) { setScanDirection(-1); return 88; }
+                if (next <= 5) { setScanDirection(1); return 5; }
+                return next;
+            });
+        }, 35);
+
+        return () => clearInterval(interval);
+    }, [loading, scanDirection]);
+
+    return (
+        <main className="min-h-screen bg-[#FAF9F7] pb-32 font-sans">
+            <MobileHeader progress={progress} onBack={onBack} />
+
+            <div className="px-4 py-4">
+                <Stepper />
+            </div>
+
+            <div className="space-y-4 px-4">
+                <ImageAnalysis imagePayload={imagePayload} result={result} loading={loading} failed={failed} scanPosition={scanPosition} progress={progress} />
+
+                {failed ? (
+                    <ErrorState error={error} onRetry={runAnalysis} />
+                ) : (
+                    <>
+                        <Inspection result={result} loading={loading} />
+                        <DetectionSummary result={result} />
+                        <TransparencyNote />
+                    </>
+                )}
+            </div>
+
+            <BottomActions loading={loading} failed={failed} success={success} result={result} onBack={onBack} onRetry={runAnalysis} onNext={onNext} />
+        </main>
     );
 }
