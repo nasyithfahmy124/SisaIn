@@ -10,7 +10,8 @@ const getAuthHeaders = ({ json = true } = {}) => {
     }
 
     const headers = {
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
     };
 
     if (json) {
@@ -24,7 +25,9 @@ const parseResponse = async (response) => {
     const contentType = response.headers.get('content-type') || '';
     const text = await response.text();
 
-    if (!text) return null;
+    if (!text) {
+        return null;
+    }
 
     if (contentType.includes('application/json')) {
         try {
@@ -37,28 +40,72 @@ const parseResponse = async (response) => {
     return { raw: text };
 };
 
+const getErrorMessage = (data, status) => {
+    if (!data) {
+        return `Request gagal dengan status ${status}.`;
+    }
+
+    if (data.detail) {
+        return data.detail;
+    }
+
+    if (data.message) {
+        return data.message;
+    }
+
+    if (data.error) {
+        return data.error;
+    }
+
+    if (data.errors && typeof data.errors === 'object') {
+        return Object.entries(data.errors)
+            .flatMap(([field, errors]) => {
+                const messages = Array.isArray(errors) ? errors : [errors];
+                return messages.map((message) => `${field}: ${message}`);
+            })
+            .join(', ');
+    }
+
+    if (data.raw) {
+        return data.raw;
+    }
+
+    return `Request gagal dengan status ${status}.`;
+};
+
 const request = async (endpoint, options = {}) => {
-    const response = await fetch(`${BASE_URL}${endpoint}`, options);
+    const url = `${BASE_URL}${endpoint}`;
+
+    let response;
+
+    try {
+        response = await fetch(url, {
+            ...options,
+            headers: {
+                Accept: 'application/json',
+                ...(options.headers || {}),
+            },
+        });
+    } catch (error) {
+        console.error('API CONNECTION ERROR:', error);
+        throw new Error('Tidak dapat terhubung ke server.');
+    }
+
     const data = await parseResponse(response);
 
-    console.log('API RESPONSE', {
+    console.log('API RESPONSE:', {
         endpoint,
         method: options.method || 'GET',
         status: response.status,
-        data
+        data,
     });
 
     if (!response.ok) {
-        const message =
-            data?.detail ||
-            data?.message ||
-            data?.error ||
-            data?.raw ||
-            `Request gagal dengan status ${response.status}.`;
+        const error = new Error(getErrorMessage(data, response.status));
 
-        const error = new Error(message);
         error.status = response.status;
         error.data = data;
+        error.endpoint = endpoint;
 
         throw error;
     }
@@ -70,7 +117,7 @@ export const profileApi = {
     getProfile: async () => {
         return request('/profil/', {
             method: 'GET',
-            headers: getAuthHeaders()
+            headers: getAuthHeaders(),
         });
     },
 
@@ -78,52 +125,49 @@ export const profileApi = {
         const isFormData = profileData instanceof FormData;
 
         if (isFormData) {
-            console.log('=== UPDATE PROFILE FORM DATA ===');
+            console.log('UPDATE PROFILE FORM DATA:');
 
             for (const [key, value] of profileData.entries()) {
                 console.log(key, value);
             }
         } else {
-            console.log('=== UPDATE PROFILE JSON ===');
-            console.log(profileData);
+            console.log('UPDATE PROFILE JSON:', profileData);
         }
 
         return request('/profil-update/', {
             method: 'PUT',
             headers: getAuthHeaders({
-                json: !isFormData
+                json: !isFormData,
             }),
-            body: isFormData
-                ? profileData
-                : JSON.stringify(profileData)
+            body: isFormData ? profileData : JSON.stringify(profileData),
         });
     },
 
     getDonationHistory: async () => {
         return request('/riwayat-donasi/', {
             method: 'GET',
-            headers: getAuthHeaders()
+            headers: getAuthHeaders(),
         });
     },
 
     getClaimHistory: async () => {
         return request('/riwayat-klaim/', {
             method: 'GET',
-            headers: getAuthHeaders()
+            headers: getAuthHeaders(),
         });
     },
 
     getDashboard: async () => {
-        const [profile, donations, claims] = await Promise.allSettled([
+        const [profileResult, donationsResult, claimsResult] = await Promise.allSettled([
             profileApi.getProfile(),
             profileApi.getDonationHistory(),
-            profileApi.getClaimHistory()
+            profileApi.getClaimHistory(),
         ]);
 
         return {
-            profile: profile.status === 'fulfilled' ? profile.value : null,
-            donations: donations.status === 'fulfilled' ? donations.value : [],
-            claims: claims.status === 'fulfilled' ? claims.value : []
+            profile: profileResult.status === 'fulfilled' ? profileResult.value : null,
+            donations: donationsResult.status === 'fulfilled' ? donationsResult.value : [],
+            claims: claimsResult.status === 'fulfilled' ? claimsResult.value : [],
         };
-    }
+    },
 };

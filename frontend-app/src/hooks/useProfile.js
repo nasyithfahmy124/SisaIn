@@ -1,26 +1,74 @@
 import { useCallback, useEffect, useState } from 'react';
 import { profileApi } from '../api/profileApi';
 
-const getProfileData = (data) => {
-    if (!data) return null;
-    if (data?.profile) return data.profile;
-    if (data?.data?.profile) return data.data.profile;
-    if (data?.data && typeof data.data === 'object') return data.data;
-    return data;
+const getProfileData = (response) => {
+    if (!response) return null;
+
+    if (response?.profile) {
+        return response.profile;
+    }
+
+    if (response?.data?.profile) {
+        return response.data.profile;
+    }
+
+    if (response?.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+        return response.data;
+    }
+
+    return response;
 };
 
-const getListData = (data) => {
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.data)) return data.data;
+const getListData = (response) => {
+    if (!response) return [];
+
+    if (Array.isArray(response)) {
+        return response;
+    }
+
+    if (Array.isArray(response?.data)) {
+        return response.data;
+    }
+
+    if (Array.isArray(response?.results)) {
+        return response.results;
+    }
+
+    if (Array.isArray(response?.data?.results)) {
+        return response.data.results;
+    }
+
     return [];
+};
+
+const getErrorMessage = (error, fallbackMessage) => {
+    if (typeof error === 'string') {
+        return error;
+    }
+
+    if (error?.response?.data?.detail) {
+        return error.response.data.detail;
+    }
+
+    if (error?.response?.data?.message) {
+        return error.response.data.message;
+    }
+
+    if (error?.message) {
+        return error.message;
+    }
+
+    return fallbackMessage;
 };
 
 export const useProfile = () => {
     const [profile, setProfile] = useState(null);
     const [donations, setDonations] = useState([]);
     const [claims, setClaims] = useState([]);
+
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
+
     const [error, setError] = useState(null);
 
     const loadProfile = useCallback(async () => {
@@ -32,6 +80,7 @@ export const useProfile = () => {
             setClaims([]);
             setError(null);
             setIsLoading(false);
+
             return null;
         }
 
@@ -42,9 +91,7 @@ export const useProfile = () => {
             const profileResponse = await profileApi.getProfile();
             const profileData = getProfileData(profileResponse);
 
-            if (profileData) {
-                setProfile(profileData);
-            }
+            setProfile(profileData);
 
             const [donationResult, claimResult] = await Promise.allSettled([
                 profileApi.getDonationHistory(),
@@ -52,17 +99,26 @@ export const useProfile = () => {
             ]);
 
             if (donationResult.status === 'fulfilled') {
-                setDonations(getListData(donationResult.value));
+                const donationData = getListData(donationResult.value);
+
+                setDonations(donationData);
             }
 
             if (claimResult.status === 'fulfilled') {
-                setClaims(getListData(claimResult.value));
+                const claimData = getListData(claimResult.value);
+
+                setClaims(claimData);
             }
 
             return profileData;
-        } catch (err) {
-            const message = err?.message || 'Gagal memuat data profil.';
+        } catch (error) {
+            const message = getErrorMessage(
+                error,
+                'Gagal memuat data profil.'
+            );
+
             setError(message);
+
             return null;
         } finally {
             setIsLoading(false);
@@ -70,6 +126,10 @@ export const useProfile = () => {
     }, []);
 
     const updateProfile = useCallback(async (profileData) => {
+        if (!profileData || typeof profileData !== 'object') {
+            return null;
+        }
+
         setIsUpdating(true);
         setError(null);
 
@@ -78,8 +138,8 @@ export const useProfile = () => {
             const updatedProfile = getProfileData(response);
 
             if (updatedProfile) {
-                setProfile((current) => ({
-                    ...(current || {}),
+                setProfile((currentProfile) => ({
+                    ...(currentProfile || {}),
                     ...updatedProfile
                 }));
             }
@@ -90,20 +150,26 @@ export const useProfile = () => {
 
                 if (refreshedProfile) {
                     setProfile(refreshedProfile);
+
                     return refreshedProfile;
                 }
             } catch (refreshError) {
                 console.warn(
-                    'Profile berhasil disimpan, tetapi refresh gagal:',
+                    'Profil berhasil diperbarui, tetapi refresh gagal:',
                     refreshError
                 );
             }
 
             return updatedProfile;
-        } catch (err) {
-            const message = err?.message || 'Gagal memperbarui data profil.';
+        } catch (error) {
+            const message = getErrorMessage(
+                error,
+                'Gagal memperbarui data profil.'
+            );
+
             setError(message);
-            throw err;
+
+            throw error;
         } finally {
             setIsUpdating(false);
         }
@@ -119,13 +185,18 @@ export const useProfile = () => {
 
     return {
         profile,
+
         donations,
         claims,
+
         donationTotal: donations.length,
         claimTotal: claims.length,
+
         isLoading,
         isUpdating,
+
         error,
+
         loadProfile,
         refreshProfile,
         updateProfile

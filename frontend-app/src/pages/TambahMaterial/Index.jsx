@@ -1,6 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useAiRedistribusi } from '../../hooks/useAiRedistribusi';
+import { useProfile } from '../../hooks/useProfile';
 
 import FotoMaterialDesktop from '../../components/TambahMaterial/FotoMaterialDesktop';
 import AnalisisAIDesktop from '../../components/TambahMaterial/AnalisisAIDesktop';
@@ -21,17 +23,22 @@ import KonfirmasiPengirimanMobile from '../../components/TambahMaterial/Konfirma
 import LacakPengirimanMobile from '../../components/TambahMaterial/LacakPengirimanMobile';
 
 const INITIAL_STEP = 1;
-const ENABLE_AI_MATCH_DEMO = true;
-const DEMO_MODE = true;
+const ENABLE_AI_MATCH_DEMO = false;
 
 export default function ProsesTambahMaterial() {
     const navigate = useNavigate();
 
     const {
+        profile,
+        isLoading: isProfileLoading
+    } = useProfile();
+
+    const {
         analyzeImage,
         submitDistribusi,
         isLoading: isAILoading,
-        isSubmitting
+        isSubmitting,
+        error: aiError
     } = useAiRedistribusi();
 
     const [step, setStep] = useState(INITIAL_STEP);
@@ -41,201 +48,297 @@ export default function ProsesTambahMaterial() {
     const [selectedProject, setSelectedProject] = useState(null);
     const [deliveryData, setDeliveryData] = useState(null);
     const [trackingId, setTrackingId] = useState(null);
+    const [submitError, setSubmitError] = useState(null);
 
     const goToStep = useCallback((nextStep) => {
         setStep(nextStep);
     }, []);
 
-    const handleKirimKeAI = useCallback(async (payload) => {
-        if (!payload) return;
+    const handleKirimKeAI = useCallback(
+        async (payload) => {
+            if (!payload) {
+                return;
+            }
 
-        setImagePayload(payload);
-        setHasilAI(null);
-        setFinalData(null);
-        setSelectedProject(null);
-        setDeliveryData(null);
-        setTrackingId(null);
-        goToStep(2);
-
-        try {
-            const result = await analyzeImage(payload);
-            setHasilAI(result);
-        } catch {
+            setImagePayload(payload);
             setHasilAI(null);
-        }
-    }, [analyzeImage, goToStep]);
+            setFinalData(null);
+            setSelectedProject(null);
+            setDeliveryData(null);
+            setTrackingId(null);
+            setSubmitError(null);
 
-    const handleLanjutKonfirmasi = useCallback((data) => {
-        const analysisData = data?.finalData ?? data?.analysis ?? data?.aiData ?? data ?? {};
+            goToStep(2);
 
-        setFinalData((current) => ({
-            ...(current || {}),
-            ...(hasilAI || {}),
-            ...analysisData
-        }));
+            try {
+                const result = await analyzeImage(payload);
 
-        goToStep(3);
-    }, [goToStep, hasilAI]);
+                setHasilAI(result);
+            } catch (error) {
+                console.error('=== ERROR ANALISIS AI ===');
+                console.error(error);
 
-    const handleLanjutDistribusi = useCallback((data) => {
-        setFinalData((current) => ({
-            ...(current || {}),
-            ...(data || {})
-        }));
+                setHasilAI(null);
+            }
+        },
+        [analyzeImage, goToStep]
+    );
 
-        goToStep(4);
-    }, [goToStep]);
+    const handleLanjutKonfirmasi = useCallback(
+        (data) => {
+            const analysisData =
+                data?.finalData ??
+                data?.analysis ??
+                data?.aiData ??
+                data ??
+                {};
 
-    const handleSelesaiDistribusi = useCallback((distributionData) => {
-        const mergedData = {
-            ...(finalData || {}),
-            ...(distributionData || {})
-        };
+            setFinalData((current) => ({
+                ...(current || {}),
+                ...(hasilAI || {}),
+                ...analysisData
+            }));
 
-        const mode = distributionData?.jalur_distribusi
-            ?? distributionData?.distribution_mode
-            ?? distributionData?.metode_distribusi
-            ?? 'donasi';
+            goToStep(3);
+        },
+        [goToStep, hasilAI]
+    );
 
-        setFinalData(mergedData);
+    const handleLanjutDistribusi = useCallback(
+        (data) => {
+            setFinalData((current) => ({
+                ...(current || {}),
+                ...(data || {})
+            }));
 
-        if (mode === 'p2p') {
-            navigate('/maps', {
-                state: {
-                    mode: 'p2p',
-                    source: 'tambah-material',
-                    materialData: mergedData,
-                    imagePayload
-                }
-            });
+            goToStep(4);
+        },
+        [goToStep]
+    );
 
-            return;
-        }
-
-        goToStep(5);
-    }, [finalData, goToStep, imagePayload, navigate]);
-
-    const handlePilihProyek = useCallback((project) => {
-        if (!project) return;
-
-        setSelectedProject(project);
-
-        setFinalData((current) => ({
-            ...(current || {}),
-            project_id: project?.id ?? project?.project_id ?? null,
-            selected_project: project
-        }));
-
-        goToStep(6);
-    }, [goToStep]);
-
-    const handleLanjutPengiriman = useCallback((data) => {
-        setFinalData((current) => ({
-            ...(current || {}),
-            ...(data || {})
-        }));
-
-        goToStep(7);
-    }, [goToStep]);
-
-    const handleSubmitSemuaData = useCallback(async (dataPengiriman) => {
-        setDeliveryData(dataPengiriman);
-
-        const namaPemilik = [
-            profile?.first_name,
-            profile?.last_name
-        ]
-            .filter(Boolean)
-            .join(' ')
-            .trim();
-
-        const noHp = profile?.no_tlp ?? '';
-        const alamatPemilik = profile?.alamat ?? '';
-
-        const mergedFinalData = {
-            ...(finalData || {}),
-            nama_pemilik: namaPemilik,
-            namaPemilik,
-            no_hp: noHp,
-            no_tlp: noHp,
-            alamat: finalData?.alamat || alamatPemilik
-        };
-
-        console.log('=== KONFIRMASI PENGIRIMAN ===');
-        console.log({
-            demoMode: DEMO_MODE,
-            dataPengiriman,
-            finalData: mergedFinalData,
-            selectedProject,
-            profile
-        });
-
-        if (DEMO_MODE) {
-            const demoTrackingId = `SISAIN-DEMO-${Date.now()
-                .toString()
-                .slice(-6)}`;
-
-            const demoDeliveryData = {
-                ...dataPengiriman,
-                demo_mode: true,
-                tracking_id: demoTrackingId
+    const handleSelesaiDistribusi = useCallback(
+        (distributionData) => {
+            const mergedData = {
+                ...(finalData || {}),
+                ...(distributionData || {})
             };
 
-            setFinalData({
-                ...mergedFinalData,
-                ...demoDeliveryData
-            });
+            const mode =
+                distributionData?.jalur_distribusi ??
+                distributionData?.distribution_mode ??
+                distributionData?.metode_distribusi ??
+                'redistribusi';
 
-            setDeliveryData(demoDeliveryData);
-            setTrackingId(demoTrackingId);
-            goToStep(8);
+            setFinalData(mergedData);
 
-            return;
-        }
+            if (mode === 'p2p') {
+                navigate('/maps', {
+                    state: {
+                        mode: 'p2p',
+                        source: 'tambah-material',
+                        materialData: mergedData,
+                        imagePayload
+                    }
+                });
 
-        try {
-            const result = await submitDistribusi({
+                return;
+            }
+
+            goToStep(5);
+        },
+        [
+            finalData,
+            goToStep,
+            imagePayload,
+            navigate
+        ]
+    );
+
+    const handlePilihProyek = useCallback(
+        (project) => {
+            if (!project) {
+                return;
+            }
+
+            const projectId =
+                project?.id ??
+                project?.project_id ??
+                null;
+
+            setSelectedProject(project);
+
+            setFinalData((current) => ({
+                ...(current || {}),
+                project_id: projectId,
+                selected_project: project
+            }));
+
+            goToStep(6);
+        },
+        [goToStep]
+    );
+
+    const handleLanjutPengiriman = useCallback(
+        (data) => {
+            setFinalData((current) => ({
+                ...(current || {}),
+                ...(data || {})
+            }));
+
+            goToStep(7);
+        },
+        [goToStep]
+    );
+
+    const handleSubmitSemuaData = useCallback(
+        async (dataPengiriman) => {
+            if (isSubmitting) {
+                return;
+            }
+
+            setSubmitError(null);
+            setDeliveryData(dataPengiriman);
+
+            if (!profile && !isProfileLoading) {
+                const message =
+                    'Data profil belum tersedia. Silakan login kembali atau lengkapi profil terlebih dahulu.';
+
+                setSubmitError(message);
+
+                window.alert(message);
+
+                return;
+            }
+
+            const namaPemilik = [
+                profile?.first_name,
+                profile?.last_name
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .trim();
+
+            const fallbackName =
+                profile?.username ??
+                profile?.name ??
+                '';
+
+            const noHp =
+                profile?.no_tlp ??
+                profile?.no_hp ??
+                profile?.phone ??
+                '';
+
+            const alamatPemilik =
+                profile?.alamat ??
+                profile?.address ??
+                '';
+
+            const mergedFinalData = {
+                ...(finalData || {}),
+
+                nama_pemilik:
+                    namaPemilik || fallbackName,
+
+                namaPemilik:
+                    namaPemilik || fallbackName,
+
+                no_hp: noHp,
+                no_tlp: noHp,
+
+                alamat:
+                    finalData?.alamat ||
+                    alamatPemilik
+            };
+
+            console.log('=== SUBMIT REDISTRIBUSI ===');
+            console.log({
+                dataPengiriman,
                 finalData: mergedFinalData,
                 selectedProject,
-                deliveryData: dataPengiriman,
-                imagePayload,
                 profile
             });
 
-            console.log('=== RESPONSE DISTRIBUSI ===');
-            console.log(result);
+            try {
+                const result = await submitDistribusi({
+                    finalData: mergedFinalData,
+                    selectedProject,
+                    deliveryData: dataPengiriman,
+                    imagePayload
+                });
 
-            const trackingId =
-                result?.tracking_id ??
-                result?.trackingId ??
-                result?.id ??
-                result?.data?.tracking_id ??
-                result?.data?.id;
+                console.log('=== RESPONSE REDISTRIBUSI ===');
+                console.log(result);
 
-            setFinalData(mergedFinalData);
-            setTrackingId(trackingId ? String(trackingId) : null);
+                const responseData =
+                    result?.data ??
+                    result;
 
-            goToStep(8);
-        } catch (error) {
-            console.error('=== ERROR DISTRIBUSI ===');
-            console.error(error);
-            console.error('message:', error?.message);
-            console.error('status:', error?.status);
-            console.error('data:', error?.data);
+                const newTrackingId =
+                    responseData?.tracking_id ??
+                    responseData?.trackingId ??
+                    responseData?.id ??
+                    responseData?.kode_tracking ??
+                    null;
 
-            window.alert(
-                error?.message ||
-                'Gagal menyimpan data distribusi.'
-            );
-        }
-    }, [
-        finalData,
-        imagePayload,
-        profile,
-        selectedProject,
-        submitDistribusi,
-        goToStep
-    ]);
+                const completedData = {
+                    ...mergedFinalData,
+                    ...(result || {})
+                };
+
+                setFinalData(completedData);
+
+                setTrackingId(
+                    newTrackingId
+                        ? String(newTrackingId)
+                        : null
+                );
+
+                setDeliveryData(dataPengiriman);
+
+                goToStep(8);
+            } catch (error) {
+                console.error(
+                    '=== ERROR REDISTRIBUSI ==='
+                );
+
+                console.error(error);
+
+                console.error(
+                    'message:',
+                    error?.message
+                );
+
+                console.error(
+                    'status:',
+                    error?.status
+                );
+
+                console.error(
+                    'data:',
+                    error?.data
+                );
+
+                const message =
+                    error?.message ||
+                    'Gagal menyimpan data redistribusi. Silakan coba kembali.';
+
+                setSubmitError(message);
+
+                window.alert(message);
+            }
+        },
+        [
+            finalData,
+            imagePayload,
+            isProfileLoading,
+            isSubmitting,
+            profile,
+            selectedProject,
+            submitDistribusi,
+            goToStep
+        ]
+    );
 
     const handleReset = useCallback(() => {
         setStep(INITIAL_STEP);
@@ -245,9 +348,10 @@ export default function ProsesTambahMaterial() {
         setSelectedProject(null);
         setDeliveryData(null);
         setTrackingId(null);
+        setSubmitError(null);
     }, []);
 
-    const renderDesktop = () => {
+    const renderDesktop = useCallback(() => {
         switch (step) {
             case 1:
                 return (
@@ -292,7 +396,9 @@ export default function ProsesTambahMaterial() {
                     <AiMatchDesktop
                         finalData={finalData}
                         imagePayload={imagePayload}
-                        enableDemoFallback={ENABLE_AI_MATCH_DEMO}
+                        enableDemoFallback={
+                            ENABLE_AI_MATCH_DEMO
+                        }
                         onBack={() => goToStep(4)}
                         onNext={handlePilihProyek}
                     />
@@ -331,9 +437,25 @@ export default function ProsesTambahMaterial() {
             default:
                 return null;
         }
-    };
+    }, [
+        finalData,
+        goToStep,
+        handleKirimKeAI,
+        handleLanjutKonfirmasi,
+        handleLanjutDistribusi,
+        handlePilihProyek,
+        handleReset,
+        handleSelesaiDistribusi,
+        handleSubmitSemuaData,
+        hasilAI,
+        imagePayload,
+        isAILoading,
+        selectedProject,
+        step,
+        trackingId
+    ]);
 
-    const renderMobile = () => {
+    const renderMobile = useCallback(() => {
         switch (step) {
             case 1:
                 return (
@@ -378,6 +500,9 @@ export default function ProsesTambahMaterial() {
                     <AiMatchMobile
                         finalData={finalData}
                         imagePayload={imagePayload}
+                        enableDemoFallback={
+                            ENABLE_AI_MATCH_DEMO
+                        }
                         onBack={() => goToStep(4)}
                         onNext={handlePilihProyek}
                     />
@@ -407,6 +532,7 @@ export default function ProsesTambahMaterial() {
                 return (
                     <LacakPengirimanMobile
                         trackingId={trackingId}
+                        finalData={finalData}
                         onBack={handleReset}
                     />
                 );
@@ -414,23 +540,60 @@ export default function ProsesTambahMaterial() {
             default:
                 return null;
         }
-    };
+    }, [
+        finalData,
+        goToStep,
+        handleKirimKeAI,
+        handleLanjutKonfirmasi,
+        handleLanjutDistribusi,
+        handlePilihProyek,
+        handleReset,
+        handleSelesaiDistribusi,
+        handleSubmitSemuaData,
+        hasilAI,
+        imagePayload,
+        isAILoading,
+        selectedProject,
+        step,
+        trackingId
+    ]);
+
+    const hasBlockingError =
+        Boolean(aiError || submitError);
 
     return (
         <div className="min-h-screen">
             {isSubmitting && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 px-6 backdrop-blur-sm">
-                    <div className="text-center">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 px-6 backdrop-blur-sm">
+                    <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-xl">
                         <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-[#FFCC00]" />
 
                         <h3 className="text-lg font-black text-gray-900">
                             Memproses Rantai Sirkular...
                         </h3>
 
-                        <p className="mt-1 text-xs font-medium text-gray-500">
-                            Menyimpan data, gambar, kebutuhan, dan pengiriman.
+                        <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
+                            Menyimpan data material, gambar,
+                            kebutuhan, dan pengiriman.
                         </p>
                     </div>
+                </div>
+            )}
+
+            {hasBlockingError && step === 2 && (
+                <div className="fixed bottom-5 left-1/2 z-[90] w-[calc(100%-32px)] max-w-lg -translate-x-1/2 rounded-2xl border border-red-100 bg-white px-4 py-3 shadow-xl">
+                    <p className="text-sm font-semibold leading-relaxed text-red-600">
+                        {aiError ||
+                            'Analisis AI gagal diproses.'}
+                    </p>
+                </div>
+            )}
+
+            {hasBlockingError && step >= 7 && (
+                <div className="fixed bottom-5 left-1/2 z-[90] w-[calc(100%-32px)] max-w-lg -translate-x-1/2 rounded-2xl border border-red-100 bg-white px-4 py-3 shadow-xl">
+                    <p className="text-sm font-semibold leading-relaxed text-red-600">
+                        {submitError}
+                    </p>
                 </div>
             )}
 
