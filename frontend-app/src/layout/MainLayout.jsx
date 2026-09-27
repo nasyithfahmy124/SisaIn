@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import MobileNavbar from '../components/MobileNavbar';
+import Footer from '../components/Footer';
 
 export default function MainLayout() {
     return (
@@ -17,6 +18,10 @@ export default function MainLayout() {
             <main className="flex-1">
                 <Outlet />
             </main>
+
+            <div className="hidden md:block">
+                <Footer />
+            </div>
         </div>
     );
 }
