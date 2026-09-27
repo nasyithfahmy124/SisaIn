@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Camera, BrainCircuit, Truck, HeartHandshake } from 'lucide-react';
 import HeroSection from '../components/Hero/HeroSection';
+import StudiKasus from '../components/StudiKasus';
 import ValuePillars from '../components/ValuePillars/ValuePillars';
 import TrustedPartners from '../components/TrustedPartners';
 import HowItWorks from '../components/HowItWorks';
@@ -16,24 +17,10 @@ export default function Beranda() {
             className="flex flex-col w-full"
         >
             <HeroSection />
+            <StudiKasus />
             <ValuePillars />
             <TrustedPartners />
             <HowItWorks />
-
-            {/* 3. SECTION CALL TO ACTION Bawah */}
-            <section className="py-20 bg-white">
-                <div className="max-w-4xl mx-auto px-4 text-center">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-6">
-                        Siap untuk membuat dampak nyata hari ini?
-                    </h2>
-                    <p className="text-gray-500 mb-8">
-                        Bergabunglah dengan ribuan donatur lainnya. Sisa makanan Anda adalah berkah bagi mereka yang lapar.
-                    </p>
-                    <button className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-3.5 rounded-full font-semibold text-lg transition-all duration-300 shadow-xl">
-                        Daftar Sebagai Donatur
-                    </button>
-                </div>
-            </section>
 
         </motion.div>
     );
