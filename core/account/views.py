@@ -13,6 +13,7 @@ from .models import AkunProfile
 from shop.models import MaterialForm
 from shop.serializers import MaterialFormSerializer
 from penerima.models import Klaim_Barang
+import requests
 
 User = get_user_model()
 
@@ -35,51 +36,60 @@ class RegistView(APIView):
         return Response(seri.errors,status.HTTP_400_BAD_REQUEST)
     
 
-class GoogleLoginAPIView(APIView):
-    permission_classes = [] 
+class GoogleLoginView(APIView):
+  permission_classes = []
 
-    def post(self, request):
-        token = request.data.get('token')
-        
-        if not token:
-            return Response({'error': 'Token Google tidak ditemukan.'}, status=status.HTTP_400_BAD_REQUEST)
+  def post(self, request):
+    token = request.data.get("token")
+    if not token:
+      return Response(
+          {"error": "Token Google diperlukan."},
+          status=status.HTTP_400_BAD_REQUEST,
+      )
 
-        try:
-            idinfo = id_token.verify_oauth2_token(
-                token, 
-                google_requests.Request(), 
-                settings.GOOGLE_CLIENT_ID
-            )
+    google_response = requests.get(
+        f"https://oauth2.googleapis.com/tokeninfo?id_token={token}"
+    )
 
-            email = idinfo.get('email')
-            first_name = idinfo.get('given_name', '')
-            last_name = idinfo.get('family_name', '')
+    if google_response.status_code != 200:
+      return Response(
+          {"error": "Token Google tidak valid atau kedaluwarsa."},
+          status=status.HTTP_400_BAD_REQUEST,
+      )
 
-            if not email:
-                return Response({'error': 'Akun Google tidak memiliki email.'}, status=status.HTTP_400_BAD_REQUEST)
-            user, created = User.objects.get_or_create(
-                username=email, 
-                defaults={
-                    'email': email, 
-                    'first_name': first_name, 
-                    'last_name': last_name
-                }
-            )
-            refresh = RefreshToken.for_user(user)
+    idinfo = google_response.json()
+    email = idinfo.get("email")
+    first_name = idinfo.get("given_name", "")
+    last_name = idinfo.get("family_name", "")
 
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'message': 'Login Google berhasil',
-                'user': {
-                    'email': user.email,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name
-                }
-            }, status=status.HTTP_200_OK)
+    if not email:
+      return Response(
+          {"error": "Email tidak ditemukan dari token Google."},
+          status=status.HTTP_400_BAD_REQUEST,
+      )
 
-        except ValueError as e:
-            return Response({'error': f'Token Google tidak valid: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+    user, created = User.objects.get_or_create(
+        username=email,
+        defaults={
+            "email": email,
+            "first_name": first_name,
+            "last_name": last_name,
+        },
+    )
+    refresh = RefreshToken.for_user(user)
+
+    return Response(
+        {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "user": {
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+            },
+        },
+        status=status.HTTP_200_OK,
+    )
         
         
 class ProfileView(APIView):
